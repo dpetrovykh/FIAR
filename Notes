@@ -1,0 +1,23 @@
+Thoughts, Monday Feb 8:
+    * The game appears to be workable but needs some work.
+    * First, it must be made more usable for human play through a terminal.
+    * Secondly, we must create the capability to look at a game digitally, scanning along runs, and columns and such.
+    TODO:
+        * Add the ability to check if a given location has already been taken by a move(or what color it is)
+        * Prevent players from placing moves where there already are some.
+        * [DONE] Add ability to undo a move.
+        * Add terminal interface to the game.
+        * [DONE] Create a testing script that generates a game and runs through some moves.
+
+Wednesday, Feb 10:
+    TODO:
+        * [DONE] Add ability to check if move is taken
+        * [DONE]prevent players from making illegal moves
+        * Add automatic expansion of the game board
+        * add terminal interface
+    On the expansion of the board:
+        * It could be that the width and height of the board increases as neccessary and the aspect ratio is modified to maintain a square grid. This requires recognizing when a move is within n of the edge. Since most games usually approach one edge and not the opposite edge simulatenously, this would likely generate many squares that we don't even need.
+        * An alternative is to first redefine how the grid size is defined to not be inherently symmetrical across the x and y axes. This would allow us to expand just a single edge when needed and lead to better-looking games.
+    How to recognize that a move is within two of the edge?:
+        * The x (or y) coordinate would be more than the edge location-2. This could trigger the expansion of the boundary by one. 
+        * The minimum distance to an edge can be calculated, and then that used to expand the border by n-spaces.
