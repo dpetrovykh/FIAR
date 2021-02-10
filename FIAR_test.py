@@ -9,7 +9,7 @@ from FIAR import FIAR
 from IPython.display import display
 
 #Create a new game
-game = FIAR()
+game = FIAR(size=13)
 #Start making moves
 game.move(0,0)
 game.move(1,1)
@@ -27,6 +27,7 @@ game.move(-2,1)
 game.move(-2,0)
 game.undo()
 game.move(-2,2)
+game.move(5,3)
 #Check that move verifier works
 try:
     assert game.loc_taken([-2,2]) #Should pass
@@ -37,22 +38,43 @@ except:
 #Check that Repeat moves are forbidden
 try: 
     game.move(-2,1)
+    print('FAIL: Repeat move not allowed')
 except ValueError:
     print("PASS: Repeat move not allowed")
 
 #Check that out-of-bounds moves are not allowed
 try:
     game.move(15,15)
+    print('FAIL: Out-of-bounds move not allowed')
 except ValueError:
     print('PASS: Out-of-bounds move not allowed.')
+    
+#Check that non-int moves are not allowed
+try:
+    game.move(6.3,5)
+    print('FAIL: non-int value checking')
+except ValueError:
+    print('PASS: non-int value checking')
     
 # Check that the distance measurements work properly
 try:
     for edge, dist in [['left',3],
-                       ['right',4],
+                       ['right',2],
                        ['bottom',5],
                        ['top',4]]:
-        assert game.d_to_edge(edge)==dist
+        calc_dist = game.d_to_edge(edge) 
+        #print(f"edge: {edge}, dist: {dist}, calc_dist: {calc_dist}")
+        assert calc_dist==dist
     print('PASS: d_to_edge()')
 except:
     print('FAIL: d_to_edge()')
+    
+
+## Test expansion of board.
+# Should showthe progressive expansion every step
+game = FIAR(size=5)
+game.move(0,0)
+game.move(1,1)
+game.move(-1,-1)
+game.move(1,-1)
+game.move(3,0)

@@ -24,35 +24,97 @@ DF_TEMP = pd.DataFrame({'marker':[],
                            'x':[],
                            'y':[],
                            'player':[]})
+MIN_EDGE_GAP = 2
+
+class RepeatMove(Exception):
+    pass
+
+class OutOfBounds(Exception):
+    pass
 
 class FIAR():
-    def __init__(self,height=13, width=13, size=None, first_player = 'black', display='Jupyter'):
+    '''
+    Documentation for FIAR class
+    '''
+    def __init__(self, size=13, first_player = 'black', display='Jupyter'):
+        '''
+        Test documentation for FIAR __init__()
+        '''
         assert display in DISPLAYS
         self.display = display
-        #Verify size or (height and width) are odd
-        if size:
-            assert size%2==1
-            self.height = size
-            self.width = size
-        else:
-            assert width%2==1 and height%2==1 
-            self.height = height
-            self.width = width
+        #Verify size is odd and define edge locations
+        assert size%2==1
+        self.right_edge = size//2+0.5
+        self.left_edge = -size//2+0.5
+        self.top_edge = size//2+0.5
+        self.bottom_edge = -size//2+0.5
+        #Other vars
         assert first_player in PLAYERS
         self.next_player = first_player
         self.next_move = 1
         self.df = DF_TEMP.copy(deep=True)
         self.draw_board()
-
-        
     
+    @staticmethod
+    def run():
+        '''
+        Runs the game through a terminal interface
+
+        Returns
+        -------
+        None.
+
+        '''
+        #create the game
+        game = FIAR(size=5)
+        game.draw_board()
+        game.render()        
+        ## Receive input of player
+        first_player = None
+        while first_player == None:
+            fp = input("Is the first player 'black' or 'red'? ")
+            if fp in PLAYERS:
+                first_player = fp
+            else:
+                print(f"\'{fp}\' is not an option")
+        game.set_next_player(first_player)
+        #print(first_player)
+        ##Main game loop
+        while True:
+            x = None
+            y = None
+            move_made = False
+            while move_made ==False:
+                #iterate through moves
+                coords = input(f"Enter 'x,y' coordinates for {game.next_player}'s next move: ")
+                if coords == 'undo':
+                    game.undo()
+                else:
+                    try:
+                        x,y = coords.split(',')
+                        x = int(x.strip())
+                        y = int(y.strip())
+                        move_made = True
+                    except:
+                        print("Input for coordinates not recognized as valid.")
+            try:
+                game.move(x,y)
+            except OutOfBounds:
+                print("The prescribed move is out-of-bounds")
+            except RepeatMove:
+                print("That spot has already been taken")
+                
     def draw_board(self):
         #Draws the Board
         self.fig, self.ax = plt.subplots()
         # Control size of figure
-        self.ax.set_xlim(-self.width/2, self.width/2)
-        self.ax.set_ylim(-self.height/2, self.height/2)
+        self.ax.set_xlim(self.left_edge, self.right_edge)
+        self.ax.set_ylim(self.bottom_edge, self.top_edge)
+        # set aspect ration to maintain square grid
+        #aspect_ratio = (self.right_edge-self.left_edge-1)/(self.top_edge-self.bottom_edge-1)
+        #self.ax.set_aspect(aspect_ratio)
         self.ax.set_aspect(1)
+        #print(f"aspect ratio: {aspect_ratio}")
         
         ## Hide original Axes and labels
         for side in['top','right','left','bottom']:
@@ -66,14 +128,14 @@ class FIAR():
                        left=False,
                        right=False)
         ## Drawing the grid lines
-        for x in np.arange(-self.width/2,self.width/2+1):
+        for x in np.arange(self.left_edge,self.right_edge+1):
             self.ax.axvline(x, color = GRIDCOLOR)
-        for y in np.arange(-self.height/2,self.height/2+1):
+        for y in np.arange(self.bottom_edge,self.top_edge+1):
             self.ax.axhline(y, color = GRIDCOLOR)
         
         ## Drawing the grid squares
-        for x in np.arange(-self.width/2, self.width/2):
-            for y in np.arange(-self.height/2, self.height/2):
+        for x in np.arange(self.left_edge, self.right_edge):
+            for y in np.arange(self.bottom_edge, self.top_edge):
                 if (np.abs(x+0.5)+np.abs(y+0.5))%2==1:
                     rect = plt.Rectangle((x,y),1,1, alpha=TILE_ALPHA, color = 'black')
                     self.ax.add_artist(rect)
@@ -127,17 +189,47 @@ class FIAR():
             assert player in PLAYERS
             self.next_player = player
         ## Verify Legality of move
+        #move is an integer position
+        if x%1!=0 or y%1!=0:
+            raise ValueError("Both x and y must in integer values")
+        #TODO
         # Move is in  repeat location
         if self.loc_taken([x,y]):
-            raise ValueError(f'The location ({x},{y}) has already been taken')
+            raise RepeatMove(f'The location ({x},{y}) has already been taken')
         # Move is beyond the current board.
-        if abs(x)>self.width//2 or abs(y)>self.width//2:
-            raise ValueError(f"The location ({x},{y}) is beyond the scope of the board.")
+        if x>self.right_edge or x<self.left_edge or y>self.top_edge or y<self.bottom_edge:
+            raise OutOfBounds(f"The location ({x},{y}) is beyond the scope of the board.")
         ## Consequences of Move
         #record the move
         self.record_move(self.next_move, x, y, self.next_player)
         #Draw the move
         self.draw_number(self.next_move, x, y, self.next_player)
+        # Check if board must be expanded on any side
+        print(f"Move: {self.next_move}")
+        for direction, edge in [('left', self.left_edge),
+                           ('right', self.right_edge),
+                           ('top', self.top_edge),
+                           ('bottom', self.bottom_edge)]:
+            #if gap too small
+            gap =self.d_to_edge(direction)
+            #print(f"direction: {direction}, gap: {gap}")
+            if gap<MIN_EDGE_GAP:
+                #print(f"Not enough room in direction: {direction}")
+                #print(f"old dist: {edge}")
+                #expand the board
+                additional_spaces = MIN_EDGE_GAP-gap
+                if direction == 'left':
+                    self.left_edge += -additional_spaces
+                elif direction == 'right':
+                    self.right_edge += additional_spaces
+                elif direction == 'top':
+                    self.top_edge += additional_spaces
+                elif direction == 'bottom':
+                    self.bottom_edge += -additional_spaces
+                #print(f"new dist: {edge}")
+                ## Redraw the newly enlarged board with the markers
+                self.draw_board()
+                self.draw_markers()
         #increment next_move value
         self.next_move +=1
         #switch next_player
@@ -195,6 +287,7 @@ class FIAR():
         self.df = self.df.iloc[0:-1,:]
         self.draw_board()
         self.draw_markers()
+        self.render()
         self.switch_player()
         self.next_move -=1
         
@@ -224,13 +317,12 @@ class FIAR():
         '''calculates the minimum distance from every point to a given edge
         '''
         ## Redefine variables based on supplied 'edge'
-        prop_dict = {'right':('x',np.max,'width',1),
-                     'left':('x',np.min,'width',-1),
-                     'top':('y',np.max,'height',1),
-                     'bottom':('y',np.min,'height',-1)}
-        axis, max_or_min, dim, pol = prop_dict[edge]
-        #print(axis, max_or_min, dim, pol)
-        edge_loc = (eval('self.'+dim)//2)*pol
-        #print(edge_loc)
+        prop_dict = {'right':('x',np.max,self.right_edge-0.5),
+                     'left':('x',np.min,self.left_edge+0.5),
+                     'top':('y',np.max,self.top_edge-0.5),
+                     'bottom':('y',np.min,self.bottom_edge+0.5)}
+        axis, max_or_min, edge_loc = prop_dict[edge]
+        #print(axis, max_or_min, edge_loc)
         ## Calculate gap
         return abs(edge_loc -max_or_min(self.df[axis]))
+    

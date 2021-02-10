@@ -13,11 +13,21 @@ Wednesday, Feb 10:
     TODO:
         * [DONE] Add ability to check if move is taken
         * [DONE]prevent players from making illegal moves
-        * Add automatic expansion of the game board
-        * add terminal interface
+        * [DONE]Add automatic expansion of the game board
+        * [DONE] add terminal interface
+        * [DONE] Add handling of exceptions to terminal interface for situations like:
+            * point off board
+            * repeat point
+            * non-int value
+        * [] Update the demo notebook to showcase the game's capabilities
+    POTENTIAL TODOS:
+        * add scaling of the numbers to the size of the board so that how they look within the squares does not change.
+        * add documentation to the code.
     On the expansion of the board:
-        * It could be that the width and height of the board increases as neccessary and the aspect ratio is modified to maintain a square grid. This requires recognizing when a move is within n of the edge. Since most games usually approach one edge and not the opposite edge simulatenously, this would likely generate many squares that we don't even need.
-        * An alternative is to first redefine how the grid size is defined to not be inherently symmetrical across the x and y axes. This would allow us to expand just a single edge when needed and lead to better-looking games.
+        *[NOT DOING] It could be that the width and height of the board increases as neccessary and the aspect ratio is modified to maintain a square grid. This requires recognizing when a move is within n of the edge. Since most games usually approach one edge and not the opposite edge simulatenously, this would likely generate many squares that we don't even need.
+        * [DONE] An alternative is to first redefine how the grid size is defined to not be inherently symmetrical across the x and y axes. This would allow us to expand just a single edge when needed and lead to better-looking games.
     How to recognize that a move is within two of the edge?:
         * The x (or y) coordinate would be more than the edge location-2. This could trigger the expansion of the boundary by one. 
         * The minimum distance to an edge can be calculated, and then that used to expand the border by n-spaces.
+    On expanding the board:
+        * Increasing the value for self.right_edge or any of the others would result in correctly drawing additional squares and gridlines. It would also increase the area in which moves are allowed. It would also modify the aspect ratio to maintain a square grid. The only missing piece seems to properly refresh the image displayed to the user.
