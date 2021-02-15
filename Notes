@@ -20,6 +20,8 @@ Wednesday, Feb 10:
             * repeat point
             * non-int value
         * [] Update the demo notebook to showcase the game's capabilities
+        * [FWD] Recognition of the game's end.
+        * [] Tidy the repository, deleting random shit.
     POTENTIAL TODOS:
         * add scaling of the numbers to the size of the board so that how they look within the squares does not change.
         * add documentation to the code.
@@ -31,3 +33,112 @@ Wednesday, Feb 10:
         * The minimum distance to an edge can be calculated, and then that used to expand the border by n-spaces.
     On expanding the board:
         * Increasing the value for self.right_edge or any of the others would result in correctly drawing additional squares and gridlines. It would also increase the area in which moves are allowed. It would also modify the aspect ratio to maintain a square grid. The only missing piece seems to properly refresh the image displayed to the user.
+
+Thursday, Feb 11:
+    TODO:
+        * [DONE] Transform game df data into matrix
+        * [DONE] Scan columns and rows of matrix to fill queue
+        * [DONE] Match patterns to queue contents to recognize end of game.
+        * [DONE] Diagonal scanning
+        * [DONE] incorporate end-of-game notice into playable game.
+        * [] Consider different coordinate systems of game and matrices and its impact.
+        * [DONE] Create helper functions for transforming game coordinates to matrix indices and vice versa.
+        * [DONE] Come up with ways to mark board that makes it easier to place the move.
+        
+    THOUGHTS:
+        * The next step seems to try and recognize patterns other than victory. Measuring and tracking soft and hard powers and threats could be a nice way to visualize a game.
+        * It could be cool to have a mode where the recognized patterns are annotated directly on the plot. This would make debugging pattern detection much easier. Maybe just start with drawing a line over the winning series of moves. This could be done in a debug mode for starters. A notation that could be manually replicated owuld allow for comparison between us and the computer.
+        * Adding methods like to_csv() and from_csv() would be good practice for other sitautions in which data is to be saved or loaded. It would also allow for the storage of games, making playing on the computer not imply that the game will be created and lost forever. These saved games would likely just be visualized, so some helper method for that would be good. Saving a game and playing it later would be good too; Maybe have a set number of games that can be saved, ask people for names to them, and display them like some sort of arcade game.
+
+Friday, Feb 12:
+    THOUGHTS:
+        * It will be neccessary when working on pattern recognition to understand what is being recognized and where. Since it is not entirely clear even how we think about soft and hard powers and threats, the computer will certainly be a bit confused.
+        * The terminology of soft and hard powers and threats is useful but may be insufficient. In the simple case of the eeexxeee arrangement, there is a single soft power and yet four possible, mutually-exclusive locations that would turn it into a soft threat. The terminology of soft and hard powers and threats refers to existing pieces and blanks, but does not talk about the locations where the new move would go.
+        * New terms:
+            *Soft Trigger: A location where, if a marker is placed, a soft power is transformed into a soft threat.
+            *Hard Trigger: A location where, if a marker is placed, a hard power is trasnformed into a hard threat.
+            
+            Soft and Hard Triggers can coexist in a single tile, as is usually done to achieve a victory.
+        
+        
+Saturday, Feb 13:
+    THOUGHTS:
+        * Could add step-through viewer for games, so that you can click the arrow keys to go forward and back. This would require a to_csv and from_csv-type methods that would allow saving and loading games. We would also need some sort of interface for interacting with the save files and displaying them. 
+        * A library of games that allows you to step through them sounds pretty cool. Maybe even allow comments. Annotations should be optional to turn on or off. Stats displayed about the current slide and other slides as well, such as number of soft and hard power/threats for each player. Maybe a line graph where the past is filled-in and the future is alpha~=0.5.
+        * The option to play a recorded game from a certain move is essential.
+        * The ability to recognize similarities between games would be very cool. Might be difficult to recognize two games that are different but effectively identical, such as rotated games, transposed games, and reflected games. Games that were branches of other games should at least be recognizable as branches.
+        * Add description of the game at launch, including victory condition and optional inputs
+        * Maybe add an actual UI with buttons and shit.
+        * It could be good to look into detecting key presses instaed of just text inputs.
+        * Scaling the displayed numbers for the size of the grid could be nice.
+        
+        
+Monday, Feb 15:
+    THOUGHTS:
+        * What are the benefits of tracking powers, threats, and triggers?:
+            * The relative abosulte number of soft or hard powers between players might give an estimate of who is doing better.
+            * The ratio of soft or hard powers to the number of moves made could give an estimate of how "tied up" or "free" someone's pieces are.
+        * What are the benefits of tracking threats?:
+            * The existence of a threat from the enemy is important to notice in order to properly react.
+            * Unexpected victories usually come as a result of several moves which both trigger and generate power. The last move is usally in a location that is a trigger for multiple locations.
+        * What are the benefits of tracking triggers?:
+            * Two triggers in the same place indicate a location that will likely cause victory.
+            * Triggers show us where we can go to force the enemy to make a move. Predicting where the enemy will go is already difficult for a person, and is inherently unpredictable.
+        * What do we call the locations that you can place a move to prevent a threat from ending the game?
+            * In the case of hard threats, there is usually only one place to go.
+            * In the case of soft threats, there are usually a few options that allow you to block.
+            * Any hard trigger is also an effective location for preventing a loss due to an enemy soft threat.
+        * What metadata could each game have attached to it?
+            * The names of the players and their colors
+            * The name of the game itself. Could be autogenerated from the names and DateTime.
+            * The date and time of the game.
+        * What currently needs to be saved for a game?
+            * The df
+        * What needs to be recalculated after loading a game?
+            * The location of the games edges
+            * The game matrix
+        
+    TODO:
+        * [DONE] Add Description of game at launch, including special character inputs
+        * [DONE] Add to_csv, from_csv methods.
+        * [DONE] Modify __init__ method to take an existing df.
+        * [] add detection of saved games
+        * [DONE] add option to load a saved game or start a new one.
+        * [] Add comments to stuff
+        * [] ? Add testing of loading and saving games
+        * [] implement autosave in case the game crashes.
+        * [] option to save game image
+        
+        
+    QUESTIONS:
+        * Why does the use of exit() to end a game cause a SystemExit exception?
+        
+    IMPORTANT:
+        * The game currently gets stuck trying to load a game after a save is performed. This could likely be helped by being able to check whether the specified filename is in the saves folder. If it is, then we can continue out of the input loop and simply load the game. This requires me to be able to list the contents of the saves folder.
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

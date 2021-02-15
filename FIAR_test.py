@@ -5,11 +5,12 @@ Created on Mon Feb  8 11:13:41 2021
 
 @author: dpetrovykh
 """
-from FIAR import FIAR
+from FIAR import FIAR, RepeatMove, OutOfBounds
 from IPython.display import display
 
 #Create a new game
 game = FIAR(size=13)
+game.draw_board()
 #Start making moves
 game.move(0,0)
 game.move(1,1)
@@ -39,14 +40,14 @@ except:
 try: 
     game.move(-2,1)
     print('FAIL: Repeat move not allowed')
-except ValueError:
+except RepeatMove:
     print("PASS: Repeat move not allowed")
 
 #Check that out-of-bounds moves are not allowed
 try:
     game.move(15,15)
     print('FAIL: Out-of-bounds move not allowed')
-except ValueError:
+except OutOfBounds:
     print('PASS: Out-of-bounds move not allowed.')
     
 #Check that non-int moves are not allowed
@@ -61,7 +62,7 @@ try:
     for edge, dist in [['left',3],
                        ['right',2],
                        ['bottom',5],
-                       ['top',4]]:
+                       ['top',3]]:
         calc_dist = game.d_to_edge(edge) 
         #print(f"edge: {edge}, dist: {dist}, calc_dist: {calc_dist}")
         assert calc_dist==dist
@@ -69,12 +70,9 @@ try:
 except:
     print('FAIL: d_to_edge()')
     
-
-## Test expansion of board.
-# Should showthe progressive expansion every step
-game = FIAR(size=5)
-game.move(0,0)
-game.move(1,1)
-game.move(-1,-1)
-game.move(1,-1)
+## Continue game to completion
+game.move(-1,0)
+game.move(4,0)
+game.move(-1,-2)
 game.move(3,0)
+game.move(-1,-3)
