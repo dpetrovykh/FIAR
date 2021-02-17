@@ -1,3 +1,4 @@
+a = 5
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -11,14 +12,18 @@ import numpy as np
 import pandas as pd
 from IPython.display import display
 from sys import exit
+import os
+from pynput.keyboard import Listener, Key
+import types
 
 GRIDCOLOR = 'black'
 GRID_MARKER_SPACING = int(3)
+FIGSIZE = 0.5
 TILE_ALPHA = 0.2
-X1DCOMP = -0.3
+X1DCOMP = -0.2
 Y1DCOMP = -0.2
-X2DCOMP = -0.5
-Y2DCOMP = -0.3
+X2DCOMP = -0.35
+Y2DCOMP = -0.2
 TEXTSIZE = 14
 PLAYERS = ['black','red']
 DISPLAYS = ['other','Jupyter']
@@ -33,6 +38,11 @@ PLAYER_CHARS = {'red':'r',
 BLACK_VICTORY = ['b']*5
 RED_VICTORY = ['r']*5
 SAVE_FOLDER = 'saves'
+YESSES = ['y','yes','yup']
+NOS = ['n','no','nope']
+##Globals
+view_index = 0 #index of latest row which is to be displayed.
+
 
 class RepeatMove(Exception):
     pass
@@ -44,7 +54,7 @@ class FIAR():
     '''
     Documentation for FIAR class
     '''
-    def __init__(self, size=5, df=None, first_player = 'black', display='Jupyter'):
+    def __init__(self, size=5, df=None, first_player = 'black', display='Jupyter', view_index = 'last'):
         '''
         Test documentation for FIAR __init__()
         '''
@@ -77,6 +87,7 @@ class FIAR():
             self.df = DF_TEMP.copy(deep=True)
         self.matrix = self.update_matrix()
     
+    
     @staticmethod
     def run():
         '''
@@ -87,36 +98,88 @@ class FIAR():
         None.
 
         '''
+        try:
         #Welcome players to the game
-        print("Welcome to Tic-Tac-Toe Five-in-a-Row!")
-        #Ask if playing new or saved game
-        mode = None
-        while mode == None:
-            ret = input("Would you like to play a 'new' game or 'load' a save?\n")
-            if ret in ['new','new_game','New']:
-                mode = 'new'
-            elif ret in ['load','save','load_save','old game']:
-                mode = 'load'
-        #If new:
-        if mode == 'new':
-            FIAR.new_game()
-        #If saved:
-        elif mode == 'load':
-            #Display saves
-            pass
-            #allow selection
-            filename = None
-            while filename == None:
-                ret = input('Please input a valid save name: ')
-                ## checking input
-                name, ext = [None]*2
-                try: 
-                    game = FIAR.from_csv(ret+'.csv')
-                    FIAR.run_game(game)
-                    filename = True
-                except:
-                    pass
+            print("Welcome to Tic-Tac-Toe Five-in-a-Row!")
+            ##Ask if playing new or saved game
+            # mode = None
+            # while mode == None:
+            #     ret = input("Would you like to play a 'new' game, 'load' a save, or 'view' a save?\n")
+            #     ret = ret.lower()
+            #     if ret in ['new','new_game','New']:
+            #         mode = 'new'
+            #     elif ret in ['load','save','load_save','old game', 'continue']:
+            #         mode = 'load'
+            #     elif ret in ['view']:
+            #         mode = 'view'
+            mode = FIAR.input_handler(choices=[(['new','new game'],'new'),
+                                               (['load','save','load save','load game','cont','continue'],'load'),
+                                               (['view'],'view')],
+                                      prompt="Would you like to play a 'new' game, 'load' a save, or 'view' a save?\n",
+                                      mods=[str.lower, str.strip])
+            #If new:
+            if mode == 'new':
+                FIAR.new_game()
+            #If saved:
+            elif mode == 'load':
+                #Perform selection of a saved game
+                game = FIAR.game_selector()
+                FIAR.run_game(game)
+            elif mode == 'view':
+                ## Select a game to view
+                game = FIAR.game_selector()
+                print("Use the left-and-right or up-and-down arrow keys to step through the game. Press 'space' to exit or 'enter' to continue play from the current view.")
+                ## Launch viewer with selected game.
+                FIAR.game_viewer(game)                
+            print("Out of 'run'way")
+        except SystemExit:
+            print('System Exit')
+            #os._exit(1)
+    
+    @staticmethod
+    def game_viewer(game):
+        #type checking
+        assert type(game) == FIAR
+        #print(f"game_viewer received a {type(game)}")
+        #print(game)
+        #displaying the game
+        game.display_all()
+        #set view_index
+        global view_index
+        view_index = game.df.shape[0]
+        #Listening to keys
+        with Listener(on_press = game.view_press) as listener:
+            listener.join()
+            
+    def view_press(self, key):
+        global view_index
+        if key in [Key.right,Key.up]:
+            if view_index< self.df.shape[0]:
+                view_index +=1
+            ## move forward in time on the current game if possible
+                new_game = FIAR(df=self.df.iloc[:view_index,:])
+                new_game.display_all()
+            else:
+                print("This is the latest view of the game.")
+            #print("up or right")
+        elif key in [Key.left,Key.down]:
+            ## move backwards in time on the current game if possible
+            if view_index>1:
+                view_index-=1
+                new_game = FIAR(df= self.df.iloc[:view_index,:])
+                new_game.display_all()
+            else:
+                print("We cannot go any further back in this game.")
+            #print("left or down")
+        elif key == Key.space:
             exit()
+        elif key == Key.enter:
+            # print("Pressing 'enter' again will load this game for play and exit the viewer")
+            new_game = FIAR(df= self.df.iloc[:view_index,:])
+            FIAR.run_game(new_game)
+        else:
+            pass
+            #print(key)
     
     @staticmethod
     def new_game():
@@ -132,58 +195,71 @@ class FIAR():
         game = FIAR(size=1)
         game.draw_board()
         game.render()        
-        print("It is recommended to make '0,0' your first move. Special commands include: 'undo', 'quit', 'save'")
         ## Receive input of player
-        first_player = None
-        while first_player == None:
-            fp = input("Is the first player 'black' or 'red'? ")
-            if fp in PLAYERS:
-                first_player = fp
-            else:
-                print(f"\'{fp}\' is not an option")
+        first_player = FIAR.input_handler(choices=[(['b','black'],'black'),
+                                                   (['r','red'], 'red')],
+                                          prompt= "Is the first player 'black' or 'red'?\n",
+                                          failure_prompt="{} is not an option.",
+                                          mods = [str.lower, str.strip])
         game.set_next_player(first_player)
+        print("It is recommended to make '0,0' your first move. Special commands include: 'undo', 'quit', 'save'")
         #print(first_player)
         FIAR.game_loop(game)
     
     @staticmethod
-    def list_saves():
-        pass
+    def game_selector(folder = SAVE_FOLDER):
+        saves = FIAR.list_saves(folder)
+        chosen_save = FIAR.input_handler(choices=[[saves,'input']], 
+                                         prompt = f"The available saves are: {saves}\nPlease input a valid save name: ")
+        game = FIAR.from_csv(chosen_save)
+        return game
     
-    def to_csv(self,filename = None):
+    @staticmethod
+    def list_saves(folder = SAVE_FOLDER):
+        ## Generate list of all .csv's,presumably all valid games.
+        files = os.listdir(folder)
+        saves = []
+        for file in files:
+            try:
+                name, ext = file.split('.')
+                if ext == 'csv':
+                    saves.append(name)
+            except:
+                pass
+        return saves
+    
+    def to_csv(self,filename, folder = SAVE_FOLDER):
         '''
-        Saves the game's dataframe as a csv
+        Saves the game's dataframe as a csv. Supplied name must lack all extensions.
 
         Returns
         -------
         None.
 
         '''
-        name,ext = [None]*2
-        #Assume it has 'csv' extension
-        try:
-            name, ext = filename.split('.')    
-            if ext != 'csv':
-                print(f"'{ext}' extension changed to '.csv'")
-                ext = 'csv'
-        # Case where name has no exception
-        except ValueError: 
-            name = filename
-            ext = 'csv'
-        filename = SAVE_FOLDER+'/'+name+'.'+ext
-        self.df.to_csv(filename, index=None)
-    
+        #If an extension is provided
+        if '.' in filename:
+            raise ValueError('Do not provide a filename with periods.')
+        address = folder+'/'+filename+'.csv'
+        #print(f"SAVE_FOLDER: {SAVE_FOLDER}, filename: {filename}, ext: {ext}, address: {address}")
+        self.df.to_csv(address, index=None)
+        #print(f"Game saved as '{filename+'.csv'}'")
+        
     @staticmethod
-    def from_csv(filename = None):
+    def from_csv(filename):
         '''
-        Loads a saved game an returns the game object
+        Loads a saved game and returns the game object. 
+        Inputs:
+        -------
+            filename (str): name of save. Should not contain file extension.
 
         Returns
         -------
         The new game object generated from old data
 
         '''
-        filename = SAVE_FOLDER+'/'+filename
-        df = pd.read_csv(filename)[['marker','x','y','player']]
+        address = SAVE_FOLDER+'/'+filename+'.csv'
+        df = pd.read_csv(address)[['marker','x','y','player']]
         game= FIAR(df=df)
         return game
     
@@ -192,15 +268,53 @@ class FIAR():
         '''
         Serves the same purpose as run() but takes a game as an input. Lacks setup inputs
         '''
-        print('Welcome!')
+        print('Welcome back!')
         game.draw_board()
         game.draw_markers()
         game.render()
         FIAR.game_loop(game)
     
     @staticmethod
+    def input_handler(choices, prompt, failure_prompt=None, mods = None):
+        while True:
+            input_ = input(prompt)
+            if mods:
+                for mod in mods:
+                    input_ = mod(input_)
+            for check, result in choices:
+                # If check is a function
+                if type(check) == types.FunctionType:
+                    # Check to see if the function returns True
+                    if check(input_):
+                        # if a special value has been given for the intended return value.
+                        if result == "input":
+                            return input_
+                        # If a normal value has been given for the intended return value
+                        else:
+                            return result
+                    #check function does not return True
+                    else:
+                        #move on to next check 
+                        pass
+                #assume check is something iterable, like a list.
+                else:
+                    #If the user input is in the provided 'list'
+                    if input_ in check:
+                        # if a special value has been given for the intended return value.
+                        if result == "input":
+                            return input_
+                        # If a normal value has been given for the intended return value
+                        else:
+                            return result
+            if failure_prompt:
+                if "{}" in failure_prompt:
+                    print(failure_prompt.format(input_))
+                else:
+                    print(failure_prompt)
+    
+    @staticmethod
     def game_loop(game):
-        ##Main game loopzXC
+        ##Main game loop
         while True:
             x = None
             y = None
@@ -208,20 +322,57 @@ class FIAR():
             while move_made ==False:
                 #iterate through moves
                 coords = input(f"Enter 'x,y' coordinates for {game.next_player}'s next move: ")
+                #UNDO Special input
+                #print("got here 123")
                 if coords == 'undo':
                     game.undo()
+                #QUIT special input    
                 elif coords.lower() in ['quit','exit','end']:
                     print(f'The game has been ended by the {game.next_player} player')
+                    game.to_csv('autosave')
                     exit()
+                #SAVE special input
                 elif coords.lower()=='save':
                     #print('Saving the game has not yet been implemented')
                     while True:
                         ret = input('Please provide a save name for this game: \n')
                         if len(ret.split()) >1:
                             print("Please don't use special characters")
+                        elif ret in FIAR.list_saves():
+                            ## Check if willing to overwrite existing save
+                            overwrite = FIAR.input_handler(choices=[(YESSES,True),
+                                                                 (NOS, False)],
+                                                        prompt = f"The specified name '{ret}' is already taken. Would you like to overwrite the save? (y/n)\n")
+                            if overwrite:
+                                game.to_csv(ret)
+                                print(f"Game saved as '{ret}'")
+                                ## Check whether user would like to continue playing the saved game.
+                                continue_ = FIAR.input_handler(choices = [(YESSES,True),
+                                                                       (NOS,False)],
+                                                            prompt = "Would you like to continue the game you just saved? (y/n)\n",
+                                                            mods=[str.lower,str.strip])
+                                if continue_:
+                                    FIAR.run_game(game)
+                                else:
+                                    exit()
+                            else:
+                                #Ask for another name
+                                pass
+                        #Save name is appropriate
                         else:
-                            game.to_csv(ret.lower().strip()+'.csv')
-                            exit()
+                            #save the game
+                            game.to_csv(ret)
+                            print(f"Game saved as '{ret}'")
+                            ## Check whether user would like to continue playing the saved game.
+                            continue_ = FIAR.input_handler(choices = [(YESSES,True),
+                                                                   (NOS,False)],
+                                                        prompt = "Would you like to continue the game you just saved? (y/n)\n",
+                                                        mods=[str.lower,str.strip])
+                            if continue_:
+                                FIAR.run_game(game)
+                            else:
+                                exit()
+                # Regular move input
                 else:
                     try:
                         x,y = coords.split(',')
@@ -232,12 +383,14 @@ class FIAR():
                         print("Input for coordinates not recognized as valid.")
             try:
                 game.move(x,y)
+                game.to_csv('autosave')
             except OutOfBounds:
                 print("The prescribed move is out-of-bounds")
             except RepeatMove:
                 print("That spot has already been taken")
     
     def draw_board(self):
+        plt.rcParams['figure.figsize'] = (self.width*FIGSIZE, self.height*FIGSIZE)
         #Draws the Board
         self.fig, self.ax = plt.subplots()
         # Control size of figure
@@ -246,7 +399,7 @@ class FIAR():
         # set aspect ration to maintain square grid
         #aspect_ratio = (self.right_edge-self.left_edge-1)/(self.top_edge-self.bottom_edge-1)
         #self.ax.set_aspect(aspect_ratio)
-        self.ax.set_aspect(1)
+        #self.ax.set_aspect(1)
         #print(f"aspect ratio: {aspect_ratio}")
         
         ## Hide original Axes and labels
@@ -326,6 +479,20 @@ class FIAR():
                          size = TEXTSIZE)
         else:
             raise Exception("There's been a terrible error")
+    
+    def display_all(self):
+        '''
+        Helper method which draws the board, the markers, and renders the image.
+
+        Returns
+        -------
+        None.
+
+        '''
+        self.draw_board()
+        self.draw_markers()
+        self.render()
+    
     def render(self):
         '''
         Refreshes the game. Display method depends on 'display' setting.
@@ -360,7 +527,6 @@ class FIAR():
         #move is an integer position
         if x%1!=0 or y%1!=0:
             raise ValueError("Both x and y must in integer values")
-        #TODO
         # Move is in  repeat location
         if self.loc_taken([x,y]):
             raise RepeatMove(f'The location ({x},{y}) has already been taken')

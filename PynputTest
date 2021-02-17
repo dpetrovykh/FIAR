@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Feb 16 12:59:43 2021
+
+@author: dpetrovykh
+"""
+from pynput.keyboard import Listener
+
+def on_press(key):
+    print(f"Pressed key: {key}")
+
+if __name__ == "__main__":
+    with Listener(on_press = on_press) as listener:
+        listener.join()

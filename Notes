@@ -102,36 +102,73 @@ Monday, Feb 15:
         * [DONE] Add Description of game at launch, including special character inputs
         * [DONE] Add to_csv, from_csv methods.
         * [DONE] Modify __init__ method to take an existing df.
-        * [] add detection of saved games
+        * [FWD] add detection of saved games
         * [DONE] add option to load a saved game or start a new one.
-        * [] Add comments to stuff
+        * [FWD] Add comments to stuff
         * [] ? Add testing of loading and saving games
-        * [] implement autosave in case the game crashes.
+        * [FWD] implement autosave in case the game crashes.
         * [] option to save game image
         
         
     QUESTIONS:
-        * Why does the use of exit() to end a game cause a SystemExit exception?
+        * Why does the use of exit() to end a game cause a SystemExit exception? Because that is literally all it is meant to do. The answer is to handle the exception at the highest level of your code, allowing you to gracefully exit from any point in your code. The use of os._exit(1) during the exception handling is an option to completely kill your program; in my experience seems to kill the kernel.
         
     IMPORTANT:
         * The game currently gets stuck trying to load a game after a save is performed. This could likely be helped by being able to check whether the specified filename is in the saves folder. If it is, then we can continue out of the input loop and simply load the game. This requires me to be able to list the contents of the saves folder.
         
+Tuesday, Feb 16:
+    TODO:
+        * [DONE] Handle SystemExit exception
+        * [DONE] add detection of saved games
+        * [DONE] Fix issue of trying to load a game after playing a loaded game.
+        * [DONE] Extract the selection of saves
+        * [DONE] Create the game viewer.
+        * [FWD] Add option to save and continue instead of just leaving
+
+      
+    * I think now that we have a viewer, it is a great time to implement the annotation for powers, threats, and triggers. The viewer (in a debug mode, potentially), will allow us to easily see how annotation generation is going.  
+        
+    Creating a step-through viewer for games:
+        * Would be a third option alongside new game and loading.
+        * Would load in a game as input
+        * would listen to keyboard clicks for input
+        * For each press, it essentially pretends that only a subset of the data exists and draws that.
+        * A forward press increases the length of the data table
+        * A backwards press reduces the length of the data table.
+        * The enter key allows the user to start playing a new game from that point, with a double-check
+        
+    Should the viewer simply be built-in as part of playing a new or loaded game?:
+        * Maybe later
+        
+    How to implement a viewer:
+        * The game could have a view index which is normally set to "last" which determines location up to which information is displayed. For example, if a game that has gone for 10 moves has a view_index of 5, then retrieving the dataframe or displaying the markers will only show the first 5 moves. This would conflict with other properties, like the game board edges, which is something that gets calculated from the most recent DataFrame.
+        * Passing the first n_rows of a game's dataframe into the game constructor would have the desired result. It then becomes a matter of keeping track of the index which we are interested in.
         
         
+Wednesday, Feb 17:
+    TODO:
+        * [DONE] Add option to save and continue instead of just leaving
+        * [DONE] Autosave
+        * [DONE] Tell the user if a file already exists when saving
+        * [DONE] Implement ability to play viewed game from the state that it is currently in.
+        * [DONE] Replace some code with Input Handler for cleanliness
+        * [DONE] Look into setting the size of the plot to be proportional to the number of squares in each dimension. This would prevent the displayed size of the pieces changing with the size of the board.
+        * [] choose some convention for how to count powers, threats, and triggers. 
+        * [] scan for power, threats, triggers.
+        * [] Add comments to stuff. Forces me to reinterpret and reevaluate value of existing code. 
+        * [] Create better testing framework
+    
+    THOUGHTS:
+        * There are still many things to clear up about how to store information about strong and weak powers, threats, triggers. These must be worked out on paper before any digitization makes sense.
+        * I am getting to a point in the decision tree of my main game loop that some diverging paths converge again. The simplest solution to me seems to package any locations where paths converge as its own function, and just use that in both places in the tree. This could result in many unimportant functions, but it's all I got.
+        * I process many simple inputs from the user, and it takes up a lot of lines of code with its while loop and shit like that. Maybe I can create some general input handler for simple cases.
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+    SIMPLE INPUT HANDLER:
+        * A common case for handling inputs is a many-to-few case, where the user can input anything from a few lists. Any input that is included in any of the lists will case the output of a flag value indicating which bin was satisfied. Failure to provide a response within any of the categories elicits a prompt to the user. The flag value is used downstream of the input handling to determine what actions are performed. Since the performed actions can be quite complex and involve any variables from outside the input-handling context, the performed actions will not be supplied as inputs to the input handler.
+        CASES THAT ARE NOT EASILY-COVERED:
+            *When the input is checked for special values, and if all of those checks fail, the input is passed onwards.
+            * When complex input verification is necessary, like whether something is an integer or passes a certain function. I suppose that the valid list of options for each output possibility could be replaced with a function that takes the user-supplied-input and returns True or False. The input_handler could check whether it was supplied a list or a function.
+            * We currently check if the user input falls into a category. It also nice to check if some constant is contained within the user input, like a '.'
         
         
         
