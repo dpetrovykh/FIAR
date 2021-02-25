@@ -153,15 +153,31 @@ Wednesday, Feb 17:
         * [DONE] Implement ability to play viewed game from the state that it is currently in.
         * [DONE] Replace some code with Input Handler for cleanliness
         * [DONE] Look into setting the size of the plot to be proportional to the number of squares in each dimension. This would prevent the displayed size of the pieces changing with the size of the board.
-        * [] choose some convention for how to count powers, threats, and triggers. 
-        * [] scan for power, threats, triggers.
-        * [] Add comments to stuff. Forces me to reinterpret and reevaluate value of existing code. 
-        * [] Create better testing framework
+        * [DONE] simplify game loop
+        * [PAUSED] choose some convention for how to count powers, threats, and triggers. 
+        * [] Add comments to stuff. Forces me to reinterpret and reevaluate existing code. 
+        * [] Adopt MITOCW testing framework
+        * [] Look into testing which involves interacting with the terminal.
+        * [PAUSE] Allow '.' to separate move coordinates
+        * [] limit number of saves in saves folder.
+        * [] restructure scanning code
+        * [DONE] Save completed games to records folder
+        * [CANCELED] reorganize how different directions of scans have repeating code.
+        * [DONE] compartmentalize the process of determining the save location, including asking about overwriting.
+        * [] Reassess categorization of class and static methods
+        * [] Add HP detection
+        * [] Add SP and HP visualization
+        * [] decide what to do about 'eefeffeee' being detected as a soft power with triggers in the -2 and -3 positions. Maybe check SP locations against HP locations to eliminate incorrect SPs. Maybe check for HPs first, and prevent creation of that SP.
+        * [] More-thoroughly test SP detection in different directions.
+        * [] Add calcaulation of powers and threats for games created from existing dfs.
+        * [] Create method that takes in a game and generates a game for each step in that game. The powers and threats in the game will then be aggregated and plotted.
+        * []Add checking of ST and HT lists during creation of SPs and HPs. What about checking for HTs during ST generation? To do that, we would need to loop through the queue's yet again. We must also make sure that SPs are superceded by HPs. We need to loop through the queues 4 times to check for, in this order, HTs, STs, HPs, SPs, with each subsequent group checking if any match's markers are a subset of a match from a higher-order group.
     
     THOUGHTS:
         * There are still many things to clear up about how to store information about strong and weak powers, threats, triggers. These must be worked out on paper before any digitization makes sense.
         * I am getting to a point in the decision tree of my main game loop that some diverging paths converge again. The simplest solution to me seems to package any locations where paths converge as its own function, and just use that in both places in the tree. This could result in many unimportant functions, but it's all I got.
         * I process many simple inputs from the user, and it takes up a lot of lines of code with its while loop and shit like that. Maybe I can create some general input handler for simple cases.
+        * There is an issue with double-counting sets of markers as both threats and powers. The solution i will try is to calculate threats first. If a power is detected and all of its markers belong to a single threat, then that will not be considered a power. This would prevent 'eefeffeee' from being considered both a SP and ST, which is good. This would also prevent 'eefffee' from being considered a hard power, which i am unsure about. We'll see.
         
     SIMPLE INPUT HANDLER:
         * A common case for handling inputs is a many-to-few case, where the user can input anything from a few lists. Any input that is included in any of the lists will case the output of a flag value indicating which bin was satisfied. Failure to provide a response within any of the categories elicits a prompt to the user. The flag value is used downstream of the input handling to determine what actions are performed. Since the performed actions can be quite complex and involve any variables from outside the input-handling context, the performed actions will not be supplied as inputs to the input handler.
@@ -170,12 +186,124 @@ Wednesday, Feb 17:
             * When complex input verification is necessary, like whether something is an integer or passes a certain function. I suppose that the valid list of options for each output possibility could be replaced with a function that takes the user-supplied-input and returns True or False. The input_handler could check whether it was supplied a list or a function.
             * We currently check if the user input falls into a category. It also nice to check if some constant is contained within the user input, like a '.'
         
+    REMINDER:
+        * Just added processing of SP patterns. Not tested.
+        * Next is to compare these patterns to the scanned queues and add the results some list of powers and triggers
+        * The scanning will lkely need to be modified to reduce the repetition of code.
+        * 
         
+    
+        LESSON: Hide as much input handling code as possibled. What we care about is the final decision, no matter how circuituous the path. Example, FIAR.save_name_input().
         
+    STATIC vs CLASS METHODS:
+        * Static methods should not modify the class object if they are handed one.
+        * 
+    
+    Thoughts on combining the different scanning methods:
+        * Each scanning method can be defined as a set of starting points from which you go a certain distance in a certain direction. This direction is the opposite of the tail direction, which we need to calculate marker and trigger locations when pattern matches are found.
+    
+    Thoughts on heirarchy of recognition for powers and threats:
+        * One way to prevent double-counting of markers as soft and hard powers and threats is to loop through the queues 4 times.
+        * Another way is to first generate all of the different powers and threats, only making sure that any equals within the groups are lumped together. Then we can systematically step through all of the STs and compare them to HTs. Then compare all of the HPs to the HTs and STs. Then compare all of the SPs to the HTs, STs, and HPs. This eliminates the need to loop 4 times through the queues.
+Saturday, Feb 20th:
+    TODO:
+        * Reorganize code to allow for better scanning
         
+    THOUGHTS:
+        * It could be useful to look at the section in the Python Cookbook on data processing pipelines, since that is essentially what I am trying to do.
+    THOUGHTS on Restructuring of scanning:
+        * Parts:
+            * Generate list of starting points for each scanning method
+            * For each set of starting points, build your queues in a certain direction.
+            * Perhaps this code spills out queues, their head locations, and tail directions.
+            * These queues are scanned for powers and threats and recorded
+            * The lists of powers and threats are scanned through again and collapsed within their individual categories. This would be most efficient in the context of a particular scanning direction.
+            * The powers and threats are examined in heirarchical order to eliminate double-counts.
+            
+        * Do we need both a queue of len6 and queue of len5?
+            * queue5 will always be the front 5 elements of queue6. The receiver of queues from queue_scan could just make queue5 on the spot.
         
+        * If the code matching patterns to queues isn't concerned with overlapping powers then does it need to know the head_loc and tail_dir? I think not. it can just return a matching pattern.
+            
+    LESSON:
+        * If you think the problem ahead is a bit unclear, even if you aren't willing to admit that it will be "hard", start with the documentation for individual functions. This will verify if the pieces as you imagine them fit together, clarify your goals when you are actually writing code, and is something that you'll have to do at some point anyway. If you wait to document until after you've written your code, you will find holes in your code that would not otherwise have been there, and you will not remember what everything does. Writing code in un-spec'd functions is a great way to muddy the scope of a function and to start writing unmodular code.
+        * Always create your testing framework before coding anything. It is your eyes, and without it you are blind.
+
+
+Tuesday, Feb 23:
+    TODO:
+        * 
         
+    THOUGHTS:
+        * There are likely many places where the use of generators would be beneficial.
+        * I have hidden away the ugly generation of queues, but now I want access to the moments at which we switch rows to clear some memory. I could capture the switch from one row to another in the values that are returned by queues(), such as by structuring the queues in a nested data structure where it goes direction[starting_loc[queues[]]]
         
+    SCANNING:
+        * generate list of lists of lists of queues
+        * unpack list of lists of lists of queues while matching patterns
+        * Matched patterns for each category are compared heirarchically and repeats eliminated.
         
+    We either go through all queues 4 times in order of the heirarchy of powers/threats and compare all new matches with the existsing ones in the same line of scanning OR we go through the queues once, generating overlapping powers and threats, and then clean them up later. It would be difficult to clean up the matches and eliminate repeated ones without knowing which pattern matches line up with each other.
+    
+    We could have a master list of PoTs. Each category of power or threat is run through and compared/added to the master list. Repeats are eliminated.
+    
+    PROBLEM:
+        * By nesting my queues within their respective contexts of scanning direction and starting location, i was forced to generate a list of all the queues, which is very memory-intensive. Modifying the queue_gen to generate queues on demand but still in a layered format would be excellent, though potentially difficult. Could use some tips from the pipeline example.
         
+Wednesday, Feb 24:
+    TODO:
+        * [DONE] Complete detection of all powers and threats
+        * [DONE] Visualize Hard and soft powers and add it to the viewer
+        * [] Reintroduce ending the game upon victory
+        * [DONE] Add option to view record games
+        * [DONE] Add some nice formatting to the terminal interface
+        * [FWD] Switch to the viewer once a game has been completed
+        * [FWD] Properly handle key.char lacking attributeError
+    MAYBE TODO:
+        * Make visualization of hard and soft powers toggleable
+        * Store PoTs in a df.
+        * Create some tests for PoT detection.
+        * Extracting and plot PoTs for a game over time. Maybe lines
+        * Generalize marker plotting function to draw both numbers and PoT markers
+    DRAWING PoTs:
+        Soft Powers:
+            * Draw marker on trigger locations
+            * Calculate two extreme marker or trigger locations
+            * Draw line between extreme marker or trigger locations
+        Hard Powers:
+            * Draw marker on triger locations
+            * Calculate two extreme marker or trigger locations
+            * Draw line between extreme marker or trigger locations
+        Soft Threats: 
+            * Find any gaps between marker locations
+            * Shade marker locations and gaps in grey or red
+        Hard Threats:
+            * Find any gaps between marker locations
+            * Shade marker locations in darker grey or red.
+            
+    THOUGHTS:
+        * We may want to not have Soft Threats eliminate overlapping hardpowers when detecting PoTs. This could be achieved by cmparing STs and HPs to the HTs list independenty, and then combinging all three. SPs would then have to be compared to the combined list and added.
+
+Thursday, Feb 25:
+    TODO:
+        * [] Properly handle key.char lacking attributeError
+        * [DONE] Switch to the viewer once a game has been completed 
+        * [DONE] Reintroduce ending the game upon victory
+        * [DONE] If "None" provided for save name, no save made
+        * []
+    TODO CANDIDATES:
+        * [] Add way to extract summary statistics on a game and display them
+        * [] Add option to have PoT overlay on during regular gameplay
+        * [] Add way to 
+    BUGS:
+        * [DONE] "Black victory detected" when last move made in viewer
+        * [DONE] You can load a game that has already been won, have it ask for a move, and then say the game is over after the move is made no matter what. Instead, it would be preferrable if a game is checked for victory upon loading
+        * [IGNORE] When you load a game that has been won already, the victory is immediately noticed and play ceases, but the user is still asked if they would like to save it. Whatever; they can just not save it if they like.
         
+    PUT OFF:
+        * [] Investigate the "AttributeError: module 'FIAR' has no attribute 'FIAR'" problem
+        * [] Indicate in the viewer what step you are at.
+        * [] Investigate the creation of too many figures when drawing markers.
+        
+    Terminal Interface Testing:
+        * Instead of listened to, the keyboard can be emulated, and this can allow us to test the terminal interface.
