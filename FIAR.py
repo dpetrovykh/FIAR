@@ -66,20 +66,32 @@ RAW_HPs = [
     ['HP5r','ffttf'],
     ['HP6','ftftf']]
 RAW_STs = [
-    ['ST1','efffee'],
-    ['ST1r','eefffe'],
-    ['ST2','effefe'],
-    ['ST2r','efeffe']
+    ['ST1','dfffde'],
+    ['ST1r','edfffd'],
+    ['ST2','dffdfd'],
+    ['ST2r','dfdffd']
     ]
 RAW_HTs = [
-    ['HT1','effff'],
-    ['HT1r','ffffe'],
-    ['HT2','fefff'],
-    ['HT2r','fffef'],
-    ['HT3','ffeff']
+    ['HT1','dffff'],
+    ['HT1r','ffffd'],
+    ['HT2','fdfff'],
+    ['HT2r','fffdf'],
+    ['HT3','ffdff']
     ]
-PATTERN_TEMPLATE = namedtuple('Pattern','name player match_pat rel_markers rel_triggers')
-PoT_TEMPLATE = namedtuple('PoT','name player marker_locs trigger_locs')
+RAW_Spots = [
+    ['Spot1','efttte'],
+    ['Spot1r','etttfe'],
+    ['Spot2','etftte'],
+    ['Spot2r','ettfte']
+    ]
+PATTERN_TEMPLATE = namedtuple('Pattern','name player match_pat rel_markers rel_triggers rel_defusers')
+PoT_TEMPLATE = namedtuple('PoT','names player marker_locs trigger_locs')
+SPOT_TEMPLATE = namedtuple('SPot','names player marker_locs trigger_locs')
+SOFT_POWER = namedtuple('SoftPower','names player marker_locs trigger_locs')
+HARD_POWER = namedtuple('HardPower','names player marker_locs trigger_locs')
+SOFT_THREAT = namedtuple('SoftThreat','names player marker_locs defuser_locs')
+HARD_THREAT = namedtuple('HardThreat','names player marker_locs defuser_locs')
+
 IJ_TO_XY_R = [[0,1],[-1,0]] #Matrix for transforming unit vectors from ij to xy coords
 XY_TO_IJ_R = [[0,-1],[1,0]] #Matrix for transforming unit vectors from xy to ij coords.
 
@@ -87,25 +99,33 @@ XY_TO_IJ_R = [[0,-1],[1,0]] #Matrix for transforming unit vectors from xy to ij 
 ## PoT Plotting Constants
 COLOR_DICT = {'r':'red',
                  'b':'black'}
-T_MARKER = {'SP':'o',
-            'HP':'*'}
+D_MARKER = {SOFT_THREAT:'s',
+            HARD_THREAT:'s'}
+D_MARKERDICT = {
+                SOFT_THREAT: {'size':15,
+                              'alpha':0.3},
+                HARD_THREAT: {'size':20,
+                              'alpha':0.5}
+                }
+T_MARKER = {SOFT_POWER:'o',
+            HARD_POWER:'*'}
 T_MARKERDICT = {
-                'SP': {'size':17,
+                SOFT_POWER: {'size':17,
                        'alpha':0.3},
-                'HP': {'size':16,
+                HARD_POWER: {'size':16,
                        'alpha':0.5,}
                 }            
 LINEKWARGS = {
-              'SP': {'alpha':0.3,
+              SOFT_POWER: {'alpha':0.3,
                      'linestyle':'dotted',
                      'linewidth':3},
-              'HP': {'alpha':0.2,
+              HARD_POWER: {'alpha':0.2,
                      'linestyle':'-',
                      'linewidth':4},
-              'ST': {'alpha': 0.2,
+              SOFT_THREAT: {'alpha': 0.2,
                      'linestyle':'-',
                      'linewidth':10},
-              'HT': {'alpha': 0.3,
+              HARD_THREAT: {'alpha': 0.3,
                      'linestyle':'-',
                      'linewidth':20},
               }
@@ -122,6 +142,7 @@ def pattern_processing(raw_patterns, player_marker):
         matching_pattern = []
         rel_triggers = []
         rel_markers = []
+        rel_defusers = []
         for index, char in enumerate(pattern):
             if char == 'e':
                 matching_pattern.append(EMPTY_CHAR)
@@ -131,10 +152,18 @@ def pattern_processing(raw_patterns, player_marker):
             elif char == 'f':
                 matching_pattern.append(player_marker)
                 rel_markers.append(index-(len(pattern)-1))
-        list_.append(PATTERN_TEMPLATE(name,player_marker, matching_pattern, rel_markers, rel_triggers))
+            elif char == 'd':
+                matching_pattern.append(EMPTY_CHAR)
+                rel_defusers.append(index-(len(pattern)-1))
+        list_.append(PATTERN_TEMPLATE(name,player_marker, matching_pattern, rel_markers, rel_triggers, rel_defusers))
     return list_
         
 ## Constants Requiring Processing
+## SPotential
+Red_SPot_Temps = pattern_processing(RAW_Spots, 'r')
+Black_SPot_Temps = pattern_processing(RAW_Spots, 'b')
+SPot_Temps = list(Red_SPot_Temps)
+SPot_Temps.extend(Black_SPot_Temps)
 ##Soft Powers
 Red_SP_Temps = pattern_processing(RAW_SPs, 'r')
 Black_SP_Temps = pattern_processing(RAW_SPs, 'b')
@@ -150,6 +179,7 @@ Red_ST_Temps = pattern_processing(RAW_STs,'r')
 Black_ST_Temps = pattern_processing(RAW_STs, 'b')
 ST_Temps = list(Red_ST_Temps)
 ST_Temps.extend(Black_ST_Temps)
+print(ST_Temps)
 ##Hard Threats
 Red_HT_Temps = pattern_processing(RAW_HTs, 'r')
 Black_HT_Temps = pattern_processing(RAW_HTs, 'b')
@@ -237,8 +267,8 @@ class FIAR():
                 FIAR.run_game(game)
             elif mode == 'view':
                 ##Select a folder
-                folder  = FIAR.input_handler(choices =[(['records','record','history'],'records'),
-                                                       (['saves','save'],'saves')],
+                folder  = FIAR.input_handler(choices =[(['r','records','record','history'],'records'),
+                                                       (['s','saves','save'],'saves')],
                                              prompt = "Would you like to view a 'save' game or 'record' game?\n",
                                              mods=[str.lower, str.strip])
                 folder = {'saves':SAVE_FOLDER,
@@ -417,7 +447,6 @@ class FIAR():
         # print("Powers Or Threats:")
         # for PoT in self.PoTs:
         #     print(PoT)
-        #self.scan_through_matrix()
         #increment next_move value
         self.next_move +=1
         #switch next_player
@@ -723,11 +752,11 @@ class FIAR():
     def draw_PoTs(self):
         #For each PoT
         for PoT in self.PoTs:
-            PoTtype = PoT.name[0][0:2]
             #print(f"PoTtype: {PoTtype}")
+            PoTtype = type(PoT)
             color = COLOR_DICT[PoT.player]
             #if PoT is a power:
-            if PoTtype in ['SP','HP']:
+            if PoTtype in [SOFT_POWER,HARD_POWER]:
                 #draw appropriate marker for SP or HP
                 for x,y in PoT.trigger_locs:
                     self.ax.text(x+X1DCOMP,y+Y1DCOMP,T_MARKER[PoTtype], color=color, fontdict = T_MARKERDICT[PoTtype])
@@ -740,13 +769,18 @@ class FIAR():
                 x2,y2 = p2
                 self.ax.plot((x1,x2),(y1,y2),color=color, **LINEKWARGS[PoTtype])
             #if PoT is a ST or HT
-            elif PoTtype in ['ST','HT']:              
+            elif PoTtype in [SOFT_THREAT, HARD_THREAT]:              
                 ## Get all points connecting marker locations
                 p1,p2 = FIAR.extreme_points(PoT.marker_locs)
                 x1,y1 = p1
                 x2,y2 = p2
                 #Draw thick lines representing threats
                 self.ax.plot((x1,x2),(y1,y2),color=color, **LINEKWARGS[PoTtype])
+                ## Draw defuser Locations
+                for x,y in PoT.defuser_locs:
+                    self.ax.text(x+X1DCOMP,y+Y1DCOMP,D_MARKER[PoTtype], color=color, fontdict = D_MARKERDICT[PoTtype])
+            elif PoTtype == SPOT_TEMPLATE:
+                pass
                 
                 
     
@@ -851,6 +885,20 @@ class FIAR():
             matrix[i,j]= PLAYER_CHARS[player]
         self.matrix = matrix
     
+    def check_victory(self, queue):
+        if queue == RED_VICTORY:
+            ## END THE GAME
+            print('Red Wins! Congratulations!')
+            filename = FIAR.save_name_input()
+            self.to_csv(filename, folder=RECORDS_FOLDER)
+            exit()
+        elif queue == BLACK_VICTORY:
+            ## END THE GAME
+            print('Black wins! Congratulations!')
+            filename = FIAR.save_name_input()
+            self.to_csv(filename, folder=RECORDS_FOLDER)
+            exit()    
+
     def update_PoTs(self):
         global victory
         ## create all queues
@@ -865,6 +913,7 @@ class FIAR():
                 line_HPs = []
                 line_STs = []
                 line_HTs = []
+                line_Spots = []
                 ## for each type of power and threat
                 for queue6, head_loc, tail_dir in line_queues:
                     #print(f"queue6: {queue6}, head_loc: {head_loc}, tail_dir: {tail_dir}")
@@ -880,7 +929,8 @@ class FIAR():
                     for line_storage, PATTERNS, queue in[[line_SPs, SP_Temps,queue6],
                                                          [line_HPs, HP_Temps, queue5],
                                                          [line_STs, ST_Temps, queue6 ],
-                                                         [line_HTs, HT_Temps, queue5]]:                        
+                                                         [line_HTs, HT_Temps, queue5],
+                                                         [line_Spots, SPot_Temps, queue6]]:                        
                         for pattern in PATTERNS:
                             ## Context of a single queue being compaed to a single pattern
                             if queue == pattern.match_pat:
@@ -888,7 +938,21 @@ class FIAR():
                                 marker_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_markers]
                                 #print(f"marker_locs: {marker_locs}")
                                 trigger_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_triggers]
-                                PoT = PoT_TEMPLATE([pattern.name], pattern.player, marker_locs, trigger_locs)
+                                defuser_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_defusers]
+                                PoTtype = pattern.name[0:2]
+                                #print(f"PoTtype: {PoTtype}")
+                                PoT_Template = {'SP':SOFT_POWER,
+                                                'HP':HARD_POWER,
+                                                'ST':SOFT_THREAT,
+                                                'HT':HARD_THREAT,
+                                                'Sp':SPOT_TEMPLATE}[PoTtype]
+                                PoT = None
+                                if PoTtype in ['SP','Sp','HP']:
+                                    PoT = PoT_Template([pattern.name], pattern.player, marker_locs, trigger_locs)
+                                elif PoTtype in ['ST','HT']:
+                                    PoT = PoT_Template([pattern.name], pattern.player, marker_locs, defuser_locs)
+                                else:
+                                    raise Exception('Shouldnt be here')
                                 line_storage.append(PoT)
                                 #print(f"Match found: {PoT}")
                 ## Collapse nonunique pattern matches within each type of power and threat
@@ -896,28 +960,20 @@ class FIAR():
                 line_HPs = self.collapse_PoTs(line_HPs)
                 line_STs = self.collapse_PoTs(line_STs)
                 line_HTs = self.collapse_PoTs(line_HTs)
+                line_Spots = self.collapse_PoTs(line_Spots)
                 ## compare PoTs heirarchically to eliminate duplicates.
                 line_master_PoTs = list(line_HTs)
                 line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs,line_STs))
                 line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs,line_HPs))
-                line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs,line_SPs))                  
+                line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs,line_SPs))  
+                line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs, line_Spots))                
                 all_PoTs.extend(line_master_PoTs)
         self.PoTs = all_PoTs
-
-    def check_victory(self, queue):
-        if queue == RED_VICTORY:
-            ## END THE GAME
-            print('Red Wins! Congratulations!')
-            filename = FIAR.save_name_input()
-            self.to_csv(filename, folder=RECORDS_FOLDER)
-            exit()
-        elif queue == BLACK_VICTORY:
-            ## END THE GAME
-            print('Black wins! Congratulations!')
-            filename = FIAR.save_name_input()
-            self.to_csv(filename, folder=RECORDS_FOLDER)
-            exit()    
-        
+        print("Powers Or Threats:")
+        for PoT in self.PoTs:
+            if type(PoT) != SPOT_TEMPLATE:
+                print(PoT)
+            
     def nonrepeat_PoTs(self,master_list, list_):
         '''
         returns a list of PoTs in list_ whose marker locations are not contained by any one PoT in master_list 
@@ -964,10 +1020,10 @@ class FIAR():
                         match = False
                 if match: #If marker locations are shared
                     match_none = False
-                    for trigger_loc in PoT.trigger_locs:
-                        if trigger_loc not in col_PoT.trigger_locs:
+                    for trigger_loc in getattr(PoT,'trigger_locs',[]):
+                        if trigger_loc not in getattr(col_PoT,'trigger_locs', []):
                             col_PoT.trigger_locs.append(trigger_loc)
-                    col_PoT.name.extend(PoT.name)
+                    col_PoT.names.extend(PoT.names)
             if match_none: #This is a unique PoT
                 collapsed_PoTs.append(PoT)
         return collapsed_PoTs

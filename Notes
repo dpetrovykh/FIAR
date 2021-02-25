@@ -155,23 +155,23 @@ Wednesday, Feb 17:
         * [DONE] Look into setting the size of the plot to be proportional to the number of squares in each dimension. This would prevent the displayed size of the pieces changing with the size of the board.
         * [DONE] simplify game loop
         * [PAUSED] choose some convention for how to count powers, threats, and triggers. 
-        * [] Add comments to stuff. Forces me to reinterpret and reevaluate existing code. 
-        * [] Adopt MITOCW testing framework
-        * [] Look into testing which involves interacting with the terminal.
+        * [FWD] Add comments to stuff. Forces me to reinterpret and reevaluate existing code. 
+        * [DONE] Adopt MITOCW testing framework
+        * [FWD] Look into testing which involves interacting with the terminal.
         * [PAUSE] Allow '.' to separate move coordinates
-        * [] limit number of saves in saves folder.
-        * [] restructure scanning code
+        * [FWD] limit number of saves in saves folder.
+        * [FWD] restructure scanning code
         * [DONE] Save completed games to records folder
         * [CANCELED] reorganize how different directions of scans have repeating code.
         * [DONE] compartmentalize the process of determining the save location, including asking about overwriting.
-        * [] Reassess categorization of class and static methods
-        * [] Add HP detection
-        * [] Add SP and HP visualization
-        * [] decide what to do about 'eefeffeee' being detected as a soft power with triggers in the -2 and -3 positions. Maybe check SP locations against HP locations to eliminate incorrect SPs. Maybe check for HPs first, and prevent creation of that SP.
-        * [] More-thoroughly test SP detection in different directions.
-        * [] Add calcaulation of powers and threats for games created from existing dfs.
-        * [] Create method that takes in a game and generates a game for each step in that game. The powers and threats in the game will then be aggregated and plotted.
-        * []Add checking of ST and HT lists during creation of SPs and HPs. What about checking for HTs during ST generation? To do that, we would need to loop through the queue's yet again. We must also make sure that SPs are superceded by HPs. We need to loop through the queues 4 times to check for, in this order, HTs, STs, HPs, SPs, with each subsequent group checking if any match's markers are a subset of a match from a higher-order group.
+        * [FWD] Reassess categorization of class and static methods
+        * [FWD] Add HP detection
+        * [FWD] Add SP and HP visualization
+        * [FWD] decide what to do about 'eefeffeee' being detected as a soft power with triggers in the -2 and -3 positions. Maybe check SP locations against HP locations to eliminate incorrect SPs. Maybe check for HPs first, and prevent creation of that SP.
+        * [IGNORE] More-thoroughly test SP detection in different directions.
+        * [DONE] Add calcaulation of powers and threats for games created from existing dfs.
+        * [FWD] Create method that takes in a game and generates a game for each step in that game. The powers and threats in the game will then be aggregated and plotted.
+        * [FWD]Add checking of ST and HT lists during creation of SPs and HPs. What about checking for HTs during ST generation? To do that, we would need to loop through the queue's yet again. We must also make sure that SPs are superceded by HPs. We need to loop through the queues 4 times to check for, in this order, HTs, STs, HPs, SPs, with each subsequent group checking if any match's markers are a subset of a match from a higher-order group.
     
     THOUGHTS:
         * There are still many things to clear up about how to store information about strong and weak powers, threats, triggers. These must be worked out on paper before any digitization makes sense.
@@ -285,25 +285,140 @@ Wednesday, Feb 24:
         * We may want to not have Soft Threats eliminate overlapping hardpowers when detecting PoTs. This could be achieved by cmparing STs and HPs to the HTs list independenty, and then combinging all three. SPs would then have to be compared to the combined list and added.
 
 Thursday, Feb 25:
+    BACKUP TIME LOG:
+        11:05-11:45
+        11:55-12:55
+        13:10-
     TODO:
         * [] Properly handle key.char lacking attributeError
         * [DONE] Switch to the viewer once a game has been completed 
         * [DONE] Reintroduce ending the game upon victory
         * [DONE] If "None" provided for save name, no save made
-        * []
+        * [DONE] Implement SPotential
+        * [DONE] Implement Defusers
+        * [] Create method that takes in a df and generates a df for each step in that game. Another functions wraps that and returns a game for each step instead.
+        * [] create some way to visualize SPots for debugging
+        
     TODO CANDIDATES:
         * [] Add way to extract summary statistics on a game and display them
         * [] Add option to have PoT overlay on during regular gameplay
-        * [] Add way to 
+        * [] Add way to judge the quality of a move
+        
+        * [] Make the named tuples in which threats are stored have the opposite of trigger_locs, locations that defuse the threat. This could dramatically streamline decision-making for a player facing a threat. These locations could even be part of the overlay. 
+        * [] Add the drawing of defusers to the overlay. Maybe as a bold(for HTs) box around the defuser.
+        * [] Create a function for determining the Possible Play Space(PPS) for a particular player.
+        * [] Create a separate viewer class to store the viewer_index and improve compartmentalization. 
+        
+    PUT OFF:
+        * [NEED INTERNET] Investigate the "AttributeError: module 'FIAR' has no attribute 'FIAR'" problem
+        * [] Create a separate type for each pattern, so that we don't rely on matching the first two letters of the name, and all instances of "Spots" can become "SPots".
+        * [] Indicate in the viewer what step you are at.
+        * [] Investigate the creation of too many figures when drawing markers.
+        * [] limit number of saves in saves folder.
+        * [] Add comments to stuff, especially inputs and outputs of functions and their types.
+        * [] Reassess categorization of class and static methods
+        * [] Look into testing which interacts with the terminal.
+    
     BUGS:
         * [DONE] "Black victory detected" when last move made in viewer
         * [DONE] You can load a game that has already been won, have it ask for a move, and then say the game is over after the move is made no matter what. Instead, it would be preferrable if a game is checked for victory upon loading
         * [IGNORE] When you load a game that has been won already, the victory is immediately noticed and play ceases, but the user is still asked if they would like to save it. Whatever; they can just not save it if they like.
+        * [] in games where there is a victory, the Viewer can misidentify it as a Hard THREAT.
+    
+    IMPLEMENTING SPOTENTIAL(SPots):
+        TODO:
+            * [DONE] Define a set of patterns which we are looking for.
+            * [DONE] Mirror PoT implementation to spread SPots throughout the code.
+                * [DONE] RAW pattern processing
+            * [IGNORED] List SPots separately
+            
+            
+    IMPLEMENTING DEFUSERS:
+        TODO:
+            * [DONE] Redefine STs and HTs to have their own NamedTuple, and debug that
+                [DONE] changed Nmedtuple "name" to "names"
+                [DONE] add defuser 'd's to the RAW patterns.
+                [DONE] 'd' in pattern processing
+                [DONE] have collapse_PoTs accept different threats without a "trigger_locs" property. Don't need to combine defusers from different threats, since they are never subsets of each other.
+                [DONE] Have visualization work with different Types of PoTs
+            * [DONE] Populate the defuser fields during PoT detection
+            * [DONE] Add defuser visualization in the overlay.
+    
+    COLLAPSING SPots: (YES)
+        *PoTs are collapsed by combining PoTs that share the same markers. Does this work for SPots? I think so
+    
+    OUTPUT of PROCESSING A GAME: 
+        * All PoTs
+        * Number of PoTs for each player
+        * Whether a player has two simultaneous threats with different defuser locations
+        * 
         
-    PUT OFF:
-        * [] Investigate the "AttributeError: module 'FIAR' has no attribute 'FIAR'" problem
-        * [] Indicate in the viewer what step you are at.
-        * [] Investigate the creation of too many figures when drawing markers.
+    JUDGING A MOVE: (PAUSED)
+        * Individual moves can be good but bad within the larger context. For this reason, some understanding of the current state of the game is neccessary.
+        * Numerically judging whether a move is decent becuase it creates or eliminates powers is very possible. However, we often make constrained moves depending on what threats and powers we and our enemy have.
+        REALISTICALLY:
+            * Evaluate each tile as a weighed sum of addition or removal of PoTs to self or enemy, respectively.
+            * Calculate balance of power by comparing total number of PoTs for each player.
+            * Modify relative value of adding or subtracting PoTs depending on relative balance of power.
+        LIKELY IMPOSSIBLE:
+            CONCENTRATIONS OF PoTs:
+                * One should be less afraid of enemy powers that are separate that those are close together. 
+                * Could try some sort of "nearest-neighbor" stuff to identify clusters. Maybe have a maximum distance from the cluster center beyond which powers don't count.
+                * Inclined to track concentrations of triggers, since those are the locations where pieces would be placed and the game would "happen". 
+                * Tracking the marker locations might not recognize a confluence of triggers from different directions.
+                * A concentration of Pots would have values for location, total_span, total_strength, density, and maybe more.         
+            SEVERAL MOVES AHEAD:
+                * It is often the case that by spending hard powers and effectively choosing where your opponent goes that you can think several moves ahead with absolute certainty. Being able to think several moves ahead would allow a computer to individually rate each of those successive moves and decide that it's a good idea.
+            RECOGNIZE FORCING ENEMY MOVES
+                Even if the computer does not plan more than one of its moves in a row, it could at least recognize that triggering a hard power means choosing where the opponent goes, and try to evaluate the "goodness" of that spot for the enemy; you wouldn't want to force your opponent to win, for example, even if you'd gain a bunch of soft power. Though one could easily judge that using a hard power which forces the opponent to win is a bad idea, it would be harder to compare two non-game-ending moves where one
+        CONDITIONAL-CONSTRAINT LOGIC_ROUGH:
+            STEP-BY-STEP:
+                    Tile Evaluator    
+                        * Possible Play Space (PPS) are defined by all tiles within a certain distance of already-played pieces.(Maybe just the whole board, since it scales)
+                        * If there is a hard threat against me:
+                            * PPS of one location: the defuser of the HT.
+                        * Elif there is a soft threat against me:
+                            * PPS is the union of enemy ST defusers and your own HP triggers
+                        * Evaluate entire PPS through some formula
+                    AI:
+                        * Run Tile Evaluator
+                        * Pick the location with the maximum value
+                        * Place a move there.
+                    Advisor:
+                        * Run Tile Evaluator
+                        * Pick top three moves and draw them on the overlay
+                        
+                        
+    NEW TERMINOLOGY: (YES)
+        * Defuser: A location which if a player was to go there, would cause an enemy threat to stop existing. Inverse of a trigger.
+    
+    Terminal Interface Testing: (YES)
+        * Instead of being listened to, the keyboard can be emulated, and this can allow us to test the terminal interface.
         
-    Terminal Interface Testing:
-        * Instead of listened to, the keyboard can be emulated, and this can allow us to test the terminal interface.
+    SPotential (SP predeccesors): (COVERED)
+        * It could be useful to track the predeccessors to SPs. 
+        * Their number indicates a player's ability to create SPs, which is important. Qualitatively, this would reflect how constrained your markers are.
+        * This will be called SPotential, because that's a great name.
+        * Tracking SPotential and it's triggers would allow us to judge whether a move would add or subtract soft power.
+        * SPotential would likely not be displayed on the overlay, because it would create too much clutter.
+    
+    WHAT ARE THREATS ANYWAY?:(ANSWERED)
+        * A hard threat is something that unless you defuse it wil make you lose the game in one turn.
+        * A soft threat is something that unless you defuse it or use a hard power will make you lose the game in two turns.
+        Is the intersection of triggers from two soft powers a threat?
+            Conclusion:
+                * Because it is possible to ignore a tile with ovelapping triggers from two soft powers and not be guaranteed to lose the game, this situation is not to be considered a "threat"
+                * Because this tile with overlapping triggers from two soft powers is still quite dangerous, this should be reflected in the equation that rates moves. This could be treated as a special case, "A tile with two different enemy triggers", or come naturally, "Moving here will simultaneously reduce the enemy's total soft power count by two.
+            Reasoning:
+                * It is certainly dangerous, and I would prioritize that spot highly whether it was my move or the enemy's.
+                * If ignored, the enemy could trigger both soft powers simultaneously
+                * It is possible to prevent defeat at this point if you can simulatenously defuse on of the soft threats and create your own hard threat
+                * As long as the defuser for your hard threat isn't also a trigger for an enemy power, you could then defuse the second enemy threat and not be "threatened".
+   
+   POWER vs SPotential: (COVERED)
+    * POWER the ability to create a threat with a single move.
+    * SPotential is the ability to create a soft power with a single move.
+    * Neither influences the enemy's move very much, and so both of their importance is derived from the fact that they can eventually createa a threat. As such, it seems that they should essentially be treated as unequals from the same category.
+    * Should SPotential be eliminated if its markers overlap with that of an existing power or threat?
+        * If the lines along which they are looking are different, no.
+        * If the lines along which they are looking are the same, maybe. We could implement that easily-enough if need be.
