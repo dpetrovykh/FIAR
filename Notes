@@ -290,34 +290,34 @@ Thursday, Feb 25:
         11:55-12:55
         13:10-
     TODO:
-        * [] Properly handle key.char lacking attributeError
+        * [FWD] Properly handle key.char lacking attributeError
         * [DONE] Switch to the viewer once a game has been completed 
         * [DONE] Reintroduce ending the game upon victory
         * [DONE] If "None" provided for save name, no save made
         * [DONE] Implement SPotential
         * [DONE] Implement Defusers
-        * [] Create method that takes in a df and generates a df for each step in that game. Another functions wraps that and returns a game for each step instead.
-        * [] create some way to visualize SPots for debugging
+        * [FWD] Create method that takes in a df and generates a df for each step in that game. Another functions wraps that and returns a game for each step instead.
+        * [FWD] create some way to visualize SPots for debugging
         
     TODO CANDIDATES:
-        * [] Add way to extract summary statistics on a game and display them
-        * [] Add option to have PoT overlay on during regular gameplay
-        * [] Add way to judge the quality of a move
+        * [FWD] Add way to extract summary statistics on a game and display them
+        * [FWD] Add option to have PoT overlay on during regular gameplay
+        * [FWD] Add way to judge the quality of a move
         
-        * [] Make the named tuples in which threats are stored have the opposite of trigger_locs, locations that defuse the threat. This could dramatically streamline decision-making for a player facing a threat. These locations could even be part of the overlay. 
-        * [] Add the drawing of defusers to the overlay. Maybe as a bold(for HTs) box around the defuser.
-        * [] Create a function for determining the Possible Play Space(PPS) for a particular player.
-        * [] Create a separate viewer class to store the viewer_index and improve compartmentalization. 
+        * [FWD] Make the named tuples in which threats are stored have the opposite of trigger_locs, locations that defuse the threat. This could dramatically streamline decision-making for a player facing a threat. These locations could even be part of the overlay. 
+        * [FWD] Add the drawing of defusers to the overlay. Maybe as a bold(for HTs) box around the defuser.
+        * [FWD] Create a function for determining the Possible Play Space(PPS) for a particular player.
+        * [FWD] Create a separate viewer class to store the viewer_index and improve compartmentalization. 
         
     PUT OFF:
         * [NEED INTERNET] Investigate the "AttributeError: module 'FIAR' has no attribute 'FIAR'" problem
-        * [] Create a separate type for each pattern, so that we don't rely on matching the first two letters of the name, and all instances of "Spots" can become "SPots".
-        * [] Indicate in the viewer what step you are at.
-        * [] Investigate the creation of too many figures when drawing markers.
-        * [] limit number of saves in saves folder.
-        * [] Add comments to stuff, especially inputs and outputs of functions and their types.
-        * [] Reassess categorization of class and static methods
-        * [] Look into testing which interacts with the terminal.
+        * [FWD] Create a separate type for each pattern, so that we don't rely on matching the first two letters of the name, and all instances of "Spots" can become "SPots".
+        * [FWD] Indicate in the viewer what step you are at.
+        * [FWD] Investigate the creation of too many figures when drawing markers.
+        * [FWD] limit number of saves in saves folder.
+        * [FWD] Add comments to stuff, especially inputs and outputs of functions and their types.
+        * [FWD] Reassess categorization of class and static methods
+        * [FWD] Look into testing which interacts with the terminal.
     
     BUGS:
         * [DONE] "Black victory detected" when last move made in viewer
@@ -422,3 +422,247 @@ Thursday, Feb 25:
     * Should SPotential be eliminated if its markers overlap with that of an existing power or threat?
         * If the lines along which they are looking are different, no.
         * If the lines along which they are looking are the same, maybe. We could implement that easily-enough if need be.
+
+Friday, February 26:
+    TODO POTENTIALLY:
+        * [FWD] Add legend to viewer for PoTs
+        * [FWD] add a forfeit option
+        
+    * Maybe put 0,0 move automatically?
+    * When rating a move, rate moves for your opponent and see if there is a really good spot that they might want. This would mostly be spots that generate soft powers, since anything higher-order would show up as powers or threats.
+    
+    BUGS:
+        * opened a completed game in the viewer when asked. Stepped around, and eventually tried to continue from a previous point. Immedaitely got an improper victory message and was asked to save. Happens even if you restart kernel and open viewer again.
+
+Monday, March 1:
+7:30 - 9:05 (1:35)
+9:55 - 11:25 (1:30)
+11:35 - 15:20 (3:45)
+16:40 - 18:50 (2:10)
+19:15 - 19:40 (0:25)
+19:50 - 20:40 (0:50)
+
+    TODO:
+        * [IGNORED] Restructure Viewer as separate class that holds its own value for the view index
+        * [DONE] Move the victory pattern recognition to somewhere that the viewer won't trigger.
+        * [DONE] Reset victory flag properly.
+        * [DONE] Properly handle key.char lacking attributeError
+        * [DONE] Create method that takes in a df and generates a df for each step in that game. Another functions wraps that and returns a game for each step instead.
+        * [DONE] create some way to visualize SPots for debugging
+        * [DONE] Create a function for determining the Possible Play Space(PPS) for a particular player.
+        * [DONE] Add option to have PoT overlay on during regular gameplay
+        * [DONE] Add HPots to the game.
+        * [DONE] Add defuser locations to Soft Powers for AI
+        * [DONE] Add defuser locations to Hard Powers for AI
+        * [DONE] Generate a dict of Cells that contain information on PoTs
+        
+    TODO CANDIDATES:
+        * [] Add way to extract summary statistics on a game
+        * [] add way to extract summary statistics on the entire history of a game
+        * [] Add way to display summary statistic on a game
+        * [] Add way to judge the quality of a move
+        * [IGNORED] Create a separate viewer class to store the viewer_index and improve compartmentalization. 
+        * [] Add choice of whether to play 2 player or against a computer
+        
+    PUT OFF:
+        * [NEED INTERNET] Investigate the "AttributeError: module 'FIAR' has no attribute 'FIAR'" problem
+        * [] Create a separate type for each pattern, so that we don't rely on matching the first two letters of the name, and all instances of "Spots" can become "SPots".
+        * [] Indicate in the viewer what step you are at.
+        * [] Investigate the creation of too many figures when drawing markers.
+        * [] limit number of saves in saves folder.
+        * [] Add comments to stuff, especially inputs and outputs of functions and their types.
+        * [] Reassess categorization of class and static methods
+        * [] Look into testing which interacts with the terminal.
+    
+    BUGS:
+        * [IGNORE] When you load a game that has been won already, the victory is immediately noticed and play ceases, but the user is still asked if they would like to save it. Whatever; they can just not save it if they like.
+        * [] in games where there is a victory, the Viewer can misidentify it as a Hard THREAT.   
+        
+    ITERATING THROUGH GAMES: (SOLVED)
+        * To step through each state of a game, it would be nice to first step through every state of a df and wrap that.
+        * If we only needed to iterate through the games, then I could add an iterator protocol to the FIAR class. That might actually still be the best move; using a DF iterator within it might be possible.
+        
+    VIEWER OBSERVATIONS: (DONE)
+        * When the overlay is turned on and off, the "Powers and Threats" are reprinted. This may indicate that they are being recalculate unneccessarily as well.
+    
+    THOUGHTS:
+        * it might be interesting to differentiate between games and views of games.
+        
+    DETERMINING THE PPS (DONE):
+        * Possible Play Space (PPS) are defined by all tiles within a certain distance of already-played pieces.(Maybe just the whole board, since it scales)
+            * If there is a hard threat against me:
+                * PPS of one location: the defuser of the HT.
+            * Elif there is a soft threat against me:
+                * PPS is the union of enemy ST defusers and your own HP triggers
+            * Evaluate entire PPS through some formula
+            
+    ROADMAP TO AI:
+        * There is a list of properties for each cell that is relevant to the decision-making process of the current player
+        * Given a game: 
+            * a dict of cells is created of the appropriate size
+            * All the PoTs, SPots, and HPots are cycled through and their relevant locations are added to the cells' properties.
+        * If we create a dict of cell objects, each with all the relevant properties:
+            * we can scan through all SPots and PoTs and add their triggers and defusers to the relevant cell
+            * we can then iterate through all of the cells with PPS and apply a formula to them. The largest number is the best move
+        * The best move is then made by the computer.
+        * PROPERTIES NEEDED FOR FIRST VERSION OF AI:
+            * GAME-WIDE:
+                * 
+            * CELL-SPECIFIC:
+                * The location of the cell
+                GOOD FOR SELF:
+                    * if there is a friendly Hard Threat defuser (a winning move)
+                    * If there is a friendly Soft Threat defuser that would lead to victory (NOT IMPLEMENTED)
+                    * number of friendly SPot triggers (number of soft powers generated by moving there)
+                    * number of friendly boosters (number of hard powers generated by moving there)
+                    * number of SP triggers (number of STs that would be created)
+                    * number of HP triggers (number of HTs that would be created)
+                    * 
+                BAD FOR OPPONENT:
+                    * number of enemy hard threat defusers (defuse a hard threat to not lose the game)
+                    * number of enemy soft threat defusers (defuse a soft threat to not lose the game)
+                    * number of enemy soft power defusers (number of soft powers removed from enemy)
+                    * number of hard power defusers (number of hard powers removed from enemy)
+                    * 
+        * PROPERTIES POTENTIAL FOR FUTURE VERSIONS OF AI:
+            * GAME-WIDE:
+                * Ratio of all own powers to enemy powers. (Determines how important it is to bolster self or weaken enemy).
+            * CELL-SPECIFIC:
+                * number of empty tiles around the tile
+                * Whether it is on-grid with other markers of yours nearby
+                * How many enemy neighbors it has. A measure of freedom.
+                
+    HARD POWER PREDECCESORS: (DONE)
+        * It would be useful to know if moving on a location would generate a hard power.
+        * Any friendly move in a soft power which does not generate a soft threat will generate a hard power.
+        * Hard-power generating locations are currently denoted with 'e' in the raw patterns or '+' in the matching patterns. During pattern processing, we could add another category, booster_locs, which hold these other locations.
+        * What to call them?:
+            * They generate hard powers
+            * Erectors?
+            * Harder_locs?
+            * Harden?
+            * Empower_locs?
+            * booster
+        * Are there non-SP predeccesors to HPs that we are not considering?
+            * YES, sadly. Since HPs patterns are only 5 long and SPs are 6 long, there are plenty of HP predeccesors which are not themselves soft powers.
+            * We can create a group called HPots, which are predeccesors of hard powers. These will be recognized like any other pattern and saved. There relationship to SPs could be:
+                1. (CHOSEN) Subordinate to SPs. Any HPot that shares all of its markers with an SP is considered to not exist, and a tile in that SP leading to a HP will be a booster. Any HPot which is not an SP will exist, and it will also have boosters that indicate whether a move will create a hard power. CHOSEN
+                2. Indepenent of SPs. All HPots exist, even if they share markers with SPs. This means that SPs will not have boosters, and that all hard power-generating tiles will be boosters or triggers in HPots. This also means that SPs and HPots will be double-counted, and it will not be clear from an HPot whether it is part of an SP or not.
+
+    INFERRING THE CONSEQUENCES VS SEEING THEM:
+    Conclusion: 
+        We will go with the inferrential approach, because it allows us to make decisions without having to simulate a bunch of moves. Additionally, we've been able to answer all the questions that we've come up with using the inferrential approach. If we ever try to think n-moves ahead, the clarity of vision that the inferrential approach provides is much superior to the O^n complexity that the brute force approach has.    
+    Broadly, we have two approaches before us:
+        INFERRING CONSEQUENCES:
+            Refers to the process of analyzing points on the map as triggers or defusers of powers or threats, and then deciding which is most important.
+            * This approach seems more elegant, but requires more upfront work to notive every possible change that a move might cause. It becomes quite subtle when we start talking about adding or removing different types of powers. If we ever reach a situation in which we cannot recognize a certain consequence without brute force, then we will be forced to resort to the brute-force method.
+        SEEING CONSEQUENCES:
+            Refers to the brute force approach of considering the possibility of moving onto any given square and then seeing how the number of powers and threats has changed.
+                * This approach is much more computationally expensive, and may even approach being prohibitive, since each possible move generates a new board which is then fully scanned through.
+            
+    NECCESSARY BEHAVIORS OF THE AI:
+        * If a friendly soft threat remains at the start of the turn, to place a marker in a location that guarantees victory and doesn't allow the opponent to block. 
+            For example: if the computer is red: berrree
+        * If the AI goes second,when it makes its first move, it should go somewhat near 0,0.
+            * This could be a hard-coded special case that considers the turn number.
+            * It could c
+    ADDING DEFUSERS TO HARD AND SOFT POWERS: (UNDERSTOOD)
+        * Defusers of powers are useful to an opponent looking to reduce an opponents' power count.
+        * Though some triggers are diffusers, not all are. Ex: ebbtte. If an enemy marker is placed on the right-most t, then there may still be power to the left. The assumption in this example, however, is that there is room to the left. If on either side of this pattern are enemy pieces, then every empty location in this pattern is a diffuser.
+        * It is important to remember that any given SP usually matches several SP_Temps. The reason it is not so clear how to define a diffuser is, because all locations are diffusers if they fall within the bounds of a pattern match. But even though an SP pattern may have been broken, the SP as a whole may persist.
+        * In order for a location to be considered a diffuser for an SP is if it is a diffuser for all of the SP_Temp patterns that match that SP. Thus, for an individual pattern, all non-marker locations are diffusers. For a recognized SP, only those diffuser locations which exist in all individual patterns are considered real diffuser locations. This must be considered during the pattern preprocessing and PoT collapsing activities.
+
+    
+Tuesday, March 2:
+8:00 - 8:20 (0:20)
+9:45 - 11:00 (1:15)
+11:40 - 13:10 (1:30) 
+
+    TODO:
+        * [DONE] Modify cell_dict_gen() to not restrict output
+        * [DONE] Have PoTs_dict automatically update.
+        * [DONE] Evaluator
+        * [DONE] Decider
+        * [DONE] Modify game_loop and make AI_move
+        
+    PROBABLY DO LATER:
+        * [] Restructure user menu to reduce code repetition.
+        
+    MAYBE DO:
+        * [] Add a category to the cell for blocking enemy Spots with minimal value to prevent completely stupid moves. Maybe more will be needed
+        * [] add a category of patterns which are winning moves, so as not to confuse them with simple threats.
+    
+    BUGS:
+        * [] undo confuses the AI
+        * [] potentially counts ST as booster
+        * [] did not trigger game-winning hard power.
+
+    AI:
+        FUNCTIONS:
+            * Evaluator: 
+                * Accepts a cell_dict and returns a cell dict with added field for move value
+                * Does not limit locations to PPS
+            * Decider:
+                * Receives a game and returns a location to move to
+                * Uses the Evaluator
+                * Applies tactical logic to limit PPS before picking tile most-valued by evaluator.
+                * Has lots of DEBUGGING print statements to show logic of decisions.
+            * modify new_game:
+                * add option to select an AI opponent.
+            * MODIFY game_loop or CREATE NEW ONE FOR AI?
+                MODIFY:
+                    * We could simply add a check at the end of the game_loopto see if an AI is playing.
+                    * If an AI is playing:
+                        * The game_loop is temporarily exited
+                        * The AI makes a move
+                        * The state variables are reset as though a human player just went
+                        * We return to the game loop, and it is the human player's turn again.
+            * AI_move:
+                * Highest-level call in game_loop that takes move location from Decider and implements it correctly for the rest of the game to not freak out.
+            
+        THE OTHER CODE:
+            * The code that rates a particular cell will change drastically even over a small number of iterations.
+            * The rest of the code that allows the cell-rating code to make moves or allows a user to select whether to play a computer or play another player will not change as much.
+            * Creating a simple cell-rating function and writing all of the "other code" that allows a computer to move would go a long way towards to allowing us to iterate our way to effective computer play.
+        
+    THOUGHTS:
+        * If one was to get really abstract and AI-heavy, then it might be better to represent the game as a multi-dimensionsal matrix, including all of the triggers, and defusers and such. Though it would be difficult to inspect, it might be easier for a comupter to crunch through or learn from. But what do I know?
+
+    EVALUATOR:
+        * Makes use of following to make decisions:
+            GOOD FOR SELF:
+                    * if there is a friendly Hard Threat defuser (a winning move)
+                    * If there is a friendly Soft Threat defuser that would lead to victory (NOT IMPLEMENTED)
+                    * number of friendly SPot triggers (number of soft powers generated by moving there)
+                    * number of friendly boosters (number of hard powers generated by moving there)
+                    * number of SP triggers (number of STs that would be created)
+                    * number of HP triggers (number of HTs that would be created)
+                    * 
+                BAD FOR OPPONENT:
+                    * number of enemy hard threat defusers (defuse a hard threat to not lose the game)
+                    * number of enemy soft threat defusers (defuse a soft threat to not lose the game)
+                    * number of enemy soft power defusers (number of soft powers removed from enemy)
+                    * number of hard power defusers (number of hard powers removed from enemy)
+        ALGORITHM:
+            * Weighted sum of all values is simplest.
+                * Constants stored in named_tuple and passed to Evaluator. This may allow for a higher level of thought, where the "constant" values are manipulated in response to game conditions.
+        RELATIVE IMPORTANCE OF CELL ATTRIBUTES:
+            Since the weights are relative, we must understand each numbers' priority.
+            It must be noted that this is a simplistic algorithm, and it may make absolutely silly decisions, because there really is no logic. The logic will come later once the ability to play against some AI is established.
+            PROPOSED HEIRARCHY:
+            |Values|Ranking|    
+            | 1000.|1.     |HT_finish (friendly HT defusers): Going here should win the game.
+            |  100.|2.     |HT_defusers: Going here is required to not lose the game immediately
+            |   50 |2.5    |ST_finish (friendly ST_defusers): Going here to win in a coupld turns.
+            |   10.|3.     |ST_defusers: Going here is required to not lose the game, though we could use hard threats.
+            |    1 |4.     |boosters: Building hard power is very nice
+            |    1 |5.     |SPot_triggers: Building soft power is nice
+            |    1 |6.     |SP_triggers: Applying pressure is important
+            |   0.5|7.     |HP_defusers: Nice to rid opponent of HP
+            |   0.5|8.     |SP_defusers: Nice to rid opponent of SP
+            |   0.1|7.     |HP_triggers: Unclear when to use HP, so will mostly ignore. Might make it difficult to win, but whatever.
+
+        QUESTIONS:
+            * The presence of friendly Hard Power allows one to ignore soft threats for a time, but when do you choose to use them that way?
+                * I think I only do it when I think I can win later. Mathematically and simplistically, this might just mean when I can create another hard power as a result.
+            * 

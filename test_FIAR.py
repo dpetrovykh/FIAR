@@ -44,9 +44,9 @@ class TestFIAR(unittest.TestCase):
 
     def test_extreme_points(self):
         points = [(-5,4),(4,-5),(-1,0),(1,-2)]
-        self.assertEquals(FIAR.FIAR.extreme_points(points),((-5,4),(4,-5)))
+        self.assertEqual(FIAR.FIAR.extreme_points(points),((-5,4),(4,-5)))
         points = [(0,6),(0,-4),(0,0),(0,3)]
-        self.assertEquals(FIAR.FIAR.extreme_points(points),((0,-4),(0,6)))
+        self.assertEqual(FIAR.FIAR.extreme_points(points),((0,-4),(0,6)))
 
     def test_fill_line(self):
         points = [(0,0),(1,1),(3,3)]
@@ -55,6 +55,7 @@ class TestFIAR(unittest.TestCase):
         self.assertTupleEqual(filled_points, ((0,0),(1,1),(2,2),(3,3)))
         points = [(0,2), (1,1),(3,-1)]
         self.assertTupleEqual(FIAR.FIAR.fill_line(points),((0,2), (1,1),(2,0),(3,-1)))
+
 
 if __name__ == '__main__':
     # Run the tests and print verbose output to stderr.

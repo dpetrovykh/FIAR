@@ -1,4 +1,3 @@
-a = 5
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -20,6 +19,8 @@ from collections import namedtuple
 import itertools as it
 import math
 
+DEBUGGING = True
+
 GRIDCOLOR = 'black'
 GRID_MARKER_SPACING = int(3)
 FIGSIZE = 0.5
@@ -38,7 +39,7 @@ DF_TEMP = pd.DataFrame({'marker':[],
                            'player':[]})
 MIN_EDGE_GAP = 3
 EMPTY_CHAR = '+'
-PLAYER_CHARS = {'red':'r',
+PLAYER2MARKER = {'red':'r',
                      'black':'b'}
 BLACK_VICTORY = ['b']*5
 RED_VICTORY = ['r']*5
@@ -84,21 +85,33 @@ RAW_Spots = [
     ['Spot2','etftte'],
     ['Spot2r','ettfte']
     ]
-PATTERN_TEMPLATE = namedtuple('Pattern','name player match_pat rel_markers rel_triggers rel_defusers')
+RAW_Hpots = [
+    ['Hpot1','bbbff'],
+    ['Hpot1r','ffbbb'],
+    ['Hpot2','bbfbf'],
+    ['Hpot2r','fbfbb'],
+    ['Hpot3','bbffb'],
+    ['Hpot3r','bffbb'],
+    ['Hpot4','bfbbf'],
+    ['Hpot4r','fbbfb'],
+    ['Hpot5','bfbfb'],
+    ['Hpot6','fbbbf']]
+
+PATTERN_TEMPLATE = namedtuple('Pattern','name player match_pat rel_markers rel_triggers rel_defusers rel_boosters')
 PoT_TEMPLATE = namedtuple('PoT','names player marker_locs trigger_locs')
 SPOT_TEMPLATE = namedtuple('SPot','names player marker_locs trigger_locs')
-SOFT_POWER = namedtuple('SoftPower','names player marker_locs trigger_locs')
-HARD_POWER = namedtuple('HardPower','names player marker_locs trigger_locs')
+HPOT_TEMPLATE = namedtuple('HPot','names player marker_locs booster_locs')
+SOFT_POWER = namedtuple('SoftPower','names player marker_locs trigger_locs booster_locs defuser_locs')
+HARD_POWER = namedtuple('HardPower','names player marker_locs trigger_locs defuser_locs')
 SOFT_THREAT = namedtuple('SoftThreat','names player marker_locs defuser_locs')
 HARD_THREAT = namedtuple('HardThreat','names player marker_locs defuser_locs')
 
 IJ_TO_XY_R = [[0,1],[-1,0]] #Matrix for transforming unit vectors from ij to xy coords
 XY_TO_IJ_R = [[0,-1],[1,0]] #Matrix for transforming unit vectors from xy to ij coords.
 
-
 ## PoT Plotting Constants
-COLOR_DICT = {'r':'red',
-                 'b':'black'}
+COLOR_DICT = {'red':'red',
+                 'black':'black'}
 D_MARKER = {SOFT_THREAT:'s',
             HARD_THREAT:'s'}
 D_MARKERDICT = {
@@ -129,64 +142,129 @@ LINEKWARGS = {
                      'linestyle':'-',
                      'linewidth':20},
               }
+SPOT_MARKER  = {'red':'>',
+                'black':'<'}
+SPOT_MARKERDICT = {'size': 10,
+               'alpha': 1}
+SPT_X_CORR = -0.05
+SPT_Y_CORR = -0.05
 
-overlay_toggle = it.cycle([False, True])
+HPOT_MARKER  = {'red':'=',
+                'black':'|'}
+HPOT_MARKERDICT = {'size': 10,
+               'alpha': 1}
+
+## Evaluator Constants
+
+EVAL_CONSTANTS = namedtuple('Eval_Constants','HT_fins ST_fins HP_trigs SP_trigs SPot_trigs boosts HT_defs ST_defs SP_defs HP_defs')
+EvKs = EVAL_CONSTANTS(HT_fins= 1000,
+                                ST_fins = 50,
+                                HP_trigs = 0.1,
+                                SP_trigs = 1,
+                                SPot_trigs = 1,
+                                boosts = 1,
+                                HT_defs = 100,
+                                ST_defs = 10,
+                                SP_defs = 0.5,
+                                HP_defs = 0.5)
+
 ##Globals
 view_index = 0 #index of latest row which is to be displayed.
+overlay_toggle = it.cycle([False, True])
 overlay = next(overlay_toggle)
 victory = False
+ai_color = None
 
-def pattern_processing(raw_patterns, player_marker):
+def pattern_processing(raw_patterns, player):
     list_ = [] #Empty list to be returned
     for name, pattern in raw_patterns:
         matching_pattern = []
         rel_triggers = []
         rel_markers = []
         rel_defusers = []
+        rel_boosters = []
         for index, char in enumerate(pattern):
+            rel_loc = index-(len(pattern)-1)
             if char == 'e':
                 matching_pattern.append(EMPTY_CHAR)
+                #if this is a soft power
+                if name[0:2] == 'SP':
+                    #Then the empty spots that are not triggers are boosters.
+                    rel_boosters.append(rel_loc)
+                    # Then the empty spots are also defusers
+                    rel_defusers.append(rel_loc)
             elif char == 't':
                 matching_pattern.append(EMPTY_CHAR)
-                rel_triggers.append(index-(len(pattern)-1))
+                rel_triggers.append(rel_loc)
+                if name[0:2] in ['SP','HP']:
+                    rel_defusers.append(rel_loc)
             elif char == 'f':
-                matching_pattern.append(player_marker)
-                rel_markers.append(index-(len(pattern)-1))
+                matching_pattern.append(PLAYER2MARKER[player])
+                rel_markers.append(rel_loc)
             elif char == 'd':
                 matching_pattern.append(EMPTY_CHAR)
-                rel_defusers.append(index-(len(pattern)-1))
-        list_.append(PATTERN_TEMPLATE(name,player_marker, matching_pattern, rel_markers, rel_triggers, rel_defusers))
+                rel_defusers.append(rel_loc)
+            elif char == 'b':
+                matching_pattern.append(EMPTY_CHAR)
+                rel_boosters.append(rel_loc)
+        list_.append(PATTERN_TEMPLATE(name,player, matching_pattern, rel_markers, rel_triggers, rel_defusers, rel_boosters))
     return list_
         
 ## Constants Requiring Processing
+## HPotentail
+Red_HPot_Temps = pattern_processing(RAW_Hpots, 'red')
+Black_HPot_Temps = pattern_processing(RAW_Hpots, 'black')
+HPot_Temps = list(Red_HPot_Temps)
+HPot_Temps.extend(Black_HPot_Temps)
 ## SPotential
-Red_SPot_Temps = pattern_processing(RAW_Spots, 'r')
-Black_SPot_Temps = pattern_processing(RAW_Spots, 'b')
+Red_SPot_Temps = pattern_processing(RAW_Spots, 'red')
+Black_SPot_Temps = pattern_processing(RAW_Spots, 'black')
 SPot_Temps = list(Red_SPot_Temps)
 SPot_Temps.extend(Black_SPot_Temps)
 ##Soft Powers
-Red_SP_Temps = pattern_processing(RAW_SPs, 'r')
-Black_SP_Temps = pattern_processing(RAW_SPs, 'b')
+Red_SP_Temps = pattern_processing(RAW_SPs, 'red')
+Black_SP_Temps = pattern_processing(RAW_SPs, 'black')
 SP_Temps = list(Red_SP_Temps)
 SP_Temps.extend(Black_SP_Temps)
+#print(SP_Temps)
 ##Hard Powers
-Red_HP_Temps = pattern_processing(RAW_HPs, 'r')
-Black_HP_Temps = pattern_processing(RAW_HPs, 'b')
+Red_HP_Temps = pattern_processing(RAW_HPs, 'red')
+Black_HP_Temps = pattern_processing(RAW_HPs, 'black')
 HP_Temps = list(Red_HP_Temps)
 HP_Temps.extend(Black_HP_Temps)
 ##Soft Threats
-Red_ST_Temps = pattern_processing(RAW_STs,'r')
-Black_ST_Temps = pattern_processing(RAW_STs, 'b')
+Red_ST_Temps = pattern_processing(RAW_STs,'red')
+Black_ST_Temps = pattern_processing(RAW_STs, 'black')
 ST_Temps = list(Red_ST_Temps)
 ST_Temps.extend(Black_ST_Temps)
-print(ST_Temps)
+# print(ST_Temps)
 ##Hard Threats
-Red_HT_Temps = pattern_processing(RAW_HTs, 'r')
-Black_HT_Temps = pattern_processing(RAW_HTs, 'b')
+Red_HT_Temps = pattern_processing(RAW_HTs, 'red')
+Black_HT_Temps = pattern_processing(RAW_HTs, 'black')
 HT_Temps = list(Red_HT_Temps)
 HT_Temps.extend(Black_HT_Temps)
 #print(HT_Temps)
 
+class Cell():
+    def __init__(self,coords):
+        self.coords      = coords
+        self.rating      = None
+        ## Good for us
+        self.HT_finish     = 0
+        self.ST_finish     = 0
+        self.HP_triggers   = 0
+        self.SP_triggers   = 0
+        self.SPot_triggers = 0
+        self.boosters      = 0
+        ## Bad for them
+        self.HT_defusers   = 0
+        self.ST_defusers   = 0
+        self.SP_defusers   = 0
+        self.HP_defusers   = 0
+
+    def __str__(self):
+        return f"coords      = {self.coords}\nrating      = {self.rating}\nHT_finish     = {self.HT_finish}\nST_finish     = {self.ST_finish}\nHP_triggers   = {self.HP_triggers}\nSP_triggers   = {self.SP_triggers}\nSPot_triggers = {self.SPot_triggers}\nboosters      = {self.boosters}\nHT_defusers   = {self.HT_defusers}\nST_defusers   = {self.ST_defusers}\nSP_defusers   = {self.SP_defusers}\nHP_defusers   = {self.HP_defusers}"
+        
 class RepeatMove(Exception):
     pass
 
@@ -233,9 +311,14 @@ class FIAR():
             self.PoTs = []
         self.update_matrix()
         self.update_PoTs()
+        self.update_PoTs_dict()
         # print("Powers Or Threats:")
         # for PoT in self.PoTs:
         #     print(PoT)
+    
+    def __iter__(self):
+        dfs = self.df_states()
+        return (FIAR(df=df) for df in dfs)
     
     @staticmethod
     def run():
@@ -293,9 +376,24 @@ class FIAR():
 
         '''
         #create the game
+        global overlay
+        global ai_color
         game = FIAR(size=1)
         game.draw_board()
         game.render()        
+        ai_game = FIAR.input_handler(choices = [(['comp','computer','1p','ai','one player', 'single player', 'single'],True),
+                                                (['two player','2p', 'two_player','versus','vs','player'],False)], 
+                                     prompt="Would you like to play 'versus' mode or 'AI' mode?",
+                                     mods=[str.lower,str.strip])
+        if ai_game: #if we are playing an AI
+            print('Welcome to Thunderdome!\n')
+            ## Determine colors for player and ai.
+            player_color = FIAR.input_handler(choices =[(['black','b'],'black'),
+                                                        (['red','r'],'red')],
+                                              prompt = "Would you like to play as 'black' or 'red'?")
+            ai_color = {'red':'black',
+                        'black':'red'}[player_color]
+            
         print("New Game:\n")
         ## Receive input of player
         first_player = FIAR.input_handler(choices=[(['b','black'],'black'),
@@ -304,6 +402,13 @@ class FIAR():
                                           failure_prompt="    {} is not an option.",
                                           mods = [str.lower, str.strip])
         game.set_next_player(first_player)
+        ## Receive input about whether to show overlay
+        user_overlay = FIAR.input_handler(choices = [(YESSES,True),
+                                                     (NOS,False)],
+                                          prompt= "Would you like the strategic overlay to be turned on during your game?",
+                                          mods = [str.lower, str.strip])
+        if user_overlay:
+            overlay = True
         print("It is recommended to make '0,0' your first move. Special commands include: 'undo', 'quit', 'save'")
         #print(first_player)
         FIAR.game_loop(game)
@@ -329,6 +434,7 @@ class FIAR():
     
     @staticmethod
     def game_loop(game):
+        global ai_game
         global victory
         ##Main game loop
         while True:
@@ -336,6 +442,8 @@ class FIAR():
             if victory:
                 #print(f"Victory Detected for {victory}")
                 print(f"{victory.capitalize()} wins! Congratulations!")
+                victory = False
+                print(f"victory set to: {victory}")
                 filename = FIAR.save_name_input()
                 if filename: #If the user saved the game after completing
                     game.to_csv(filename, folder=RECORDS_FOLDER)
@@ -348,51 +456,62 @@ class FIAR():
                         FIAR.game_viewer(game)
                 exit()
             else:## Game is not over
-                x = None
-                y = None
-    
-                ## Ask for inputs
-                coords = input(f"Enter 'x,y' coordinates for {game.next_player}'s next move: ")
-                #UNDO Special input
-                #print("got here 123")
-                if coords == 'undo':
-                    game.undo()
-                ## QUIT special input    
-                elif coords.lower() in ['quit','exit','end']:
-                    print(f'The game has been ended by the {game.next_player} player')
-                    game.to_csv('autosave')
-                    exit()
-                ## SAVE special input
-                elif coords.lower()=='save':
-                    filename = FIAR.save_name_input()
-                    game.to_csv(filename)
-                    print(f"Game saved as '{filename}'")
-                    continue_ = FIAR.input_handler(choices = [(YESSES,True),(NOS,False)],
-                                                   prompt = "Would you like to continue the game you just saved? (y/n)\n",
-                                                   mods=[str.lower,str.strip])
-                    if continue_: #==True
-                        FIAR.run_game(game)
-                    else:
-                        exit()
-                ## Regular move input
-                else:
-                    try:
-                        ## Interpret supplied coordinates as an integer pair
-                        x,y = coords.split(',')
-                        x = int(x.strip())
-                        y = int(y.strip())
-                    except: #Provided coords not interpretable as integer pair
-                        print("Input for coordinates not recognized as valid.") 
-                        continue
-                    try:
-                        ## Make a move using the supplied integer pair
-                        game.move(x,y)
+                ## IF this is an ai_game and it is the ai's turn.
+                if ai_color == game.next_player:
+                    print("AI is making a move...")
+                    ## the AI makes a move.
+                    coords = FIAR.game_decider(game, FIAR.evaluator_sum)
+                    game.move(*coords)
+                    print("...AI move complete.")
+                else: #It is either a regular game or it is the human's turn
+                    x = None
+                    y = None
+        
+                    ## Ask for inputs
+                    coords = input(f"Enter 'x,y' coordinates for {game.next_player}'s next move: ")
+                    #UNDO Special input
+                    #print("got here 123")
+                    if coords == 'undo':
+                        game.undo()
+                    ## QUIT special input    
+                    elif coords.lower() in ['quit','exit','end']:
+                        print(f'The game has been ended by the {game.next_player} player')
                         game.to_csv('autosave')
-                        # print("autosave...complete.")
-                    except OutOfBounds:
-                        print("The prescribed move is out-of-bounds")
-                    except RepeatMove:
-                        print("That spot has already been taken")   
+                        exit()
+                    ## SAVE special input
+                    elif coords.lower()=='save':
+                        filename = FIAR.save_name_input()
+                        game.to_csv(filename)
+                        print(f"Game saved as '{filename}'")
+                        continue_ = FIAR.input_handler(choices = [(YESSES,True),(NOS,False)],
+                                                       prompt = "Would you like to continue the game you just saved? (y/n)\n",
+                                                       mods=[str.lower,str.strip])
+                        if continue_: #==True
+                            FIAR.run_game(game)
+                        else:
+                            exit()
+                    ## Regular move input
+                    else:
+                        try:
+                            ## Interpret supplied coordinates as an integer pair
+                            x,y = coords.split(',')
+                            x = int(x.strip())
+                            y = int(y.strip())
+                        except: #Provided coords not interpretable as integer pair
+                            print("Input for coordinates not recognized as valid.") 
+                            continue
+                        try:
+                            ## Make a move using the supplied integer pair
+                            game.move(x,y)
+                            game.to_csv('autosave')
+                            # print("autosave...complete.")
+                        except OutOfBounds:
+                            print("The prescribed move is out-of-bounds")
+                        except RepeatMove:
+                            print("That spot has already been taken")   
+
+   
+                            
 
     def move(self, x, y,player='next'):
         '''
@@ -444,6 +563,7 @@ class FIAR():
                 self.draw_markers()
         self.update_matrix()
         self.update_PoTs()
+        self.update_PoTs_dict()
         # print("Powers Or Threats:")
         # for PoT in self.PoTs:
         #     print(PoT)
@@ -499,21 +619,13 @@ class FIAR():
             # print("Pressing 'enter' again will load this game for play and exit the viewer")
             new_game = FIAR(df= self.df.iloc[:view_index,:])
             FIAR.run_game(new_game)
-        else:
-            ## Loof for alphabetic characters
-            key_char = None
-            try:
-                if key.char == 'o':
-                    key_char = 'o'
-            except:
-                pass
-            if key_char=='o':            
-                ## toggle the overlay
-                # print('Detected press of "o"')
-                overlay = next(overlay_toggle)
-                # print(f"Overlay: {overlay}")
-                new_game = FIAR(df=self.df.iloc[:view_index,:])
-                new_game.display_all()     
+        elif getattr(key, 'char', None)=='o':
+            ## toggle the overlay
+            # print('Detected press of "o"')
+            overlay = next(overlay_toggle)
+            # print(f"Overlay: {overlay}")
+            new_game = FIAR(df=self.df.iloc[:view_index,:])
+            new_game.display_all()     
         # print(f"key:{key},type:{type(key)}")
         # print(f"str(key): {str(key)}")
             
@@ -627,7 +739,123 @@ class FIAR():
                 else:
                     print(failure_prompt)
     
+    def update_PoTs_dict(self):
+        PoTs_dict = {
+                'red':{SPOT_TEMPLATE:[],
+                       HPOT_TEMPLATE:[],
+                    SOFT_POWER:[],
+                    HARD_POWER:[],
+                    SOFT_THREAT:[],
+                    HARD_THREAT:[]},
+                'black':{SPOT_TEMPLATE:[],
+                         HPOT_TEMPLATE:[],
+                     SOFT_POWER:[],
+                     HARD_POWER:[],
+                     SOFT_THREAT:[],
+                     HARD_THREAT:[]}
+                }
+        for PoT in self.PoTs:
+            PoTs_dict[PoT.player][type(PoT)].append(PoT)    
+        self.PoTs_dict = PoTs_dict
     
+    @staticmethod
+    def game_decider(game, evaluator):
+        '''
+        Accepts a FIAR game, applies an evaluator to its cells, and returns a reccomended move
+
+        Parameters
+        ----------
+        game : FIAR
+            A FIAR game.
+
+        Returns
+        -------
+        location : (x,y) int tuple
+            Coordinates of recommended move
+
+        '''
+        ## Generate cell_dict
+        cell_dict = game.cell_dict_gen()
+        #print(f"original cell_dict: {cell_dict}")
+        ## Limit entries in cell dict
+        limited_cell_dict = {key:val for key, val in cell_dict.items() if key in game.playable_points()}
+        ## Apply evaluator to cell_dict
+        limited_cell_dict = evaluator(limited_cell_dict)
+        #print(f"eval'd, limited cell_dict: {limited_cell_dict}")
+        ## Choose cell with maximum value
+        max_cell = max(limited_cell_dict.values(), key = lambda cell: cell.rating)
+        print(f"max cell: {max_cell}")
+        ## return location of cell with maximum value
+        return max_cell.coords
+    
+    @staticmethod
+    def evaluator_sum(cell_dict):
+        '''
+        Scans every cell in a cell_dict and populates the 'rating' field. 
+        
+        SideEffects:
+        ----------
+        cell_dict:
+                Adds a value for the 'rating' field
+        
+        Parameters
+        ----------
+        cell_dict : {(x,y):Cell}.
+            keys are coordinate tuples of positions on board
+            Cell objects with populated fields except for 'rating'
+
+        Returns
+        -------
+        evald_cell_dict : {(x,y):Cell}.
+            keys are coordinate tuples of positions on board
+            Cell objects with all populated fields, including 'rating'
+
+        '''
+        for location, cell in cell_dict.items():
+            rating = (cell.HT_finish*EvKs.HT_fins + 
+                      cell.ST_finish*EvKs.ST_fins + 
+                      cell.HP_triggers*EvKs.HP_trigs + 
+                      cell.SP_triggers*EvKs.SP_trigs +
+                      cell.SPot_triggers*EvKs.SPot_trigs + 
+                      cell.boosters*EvKs.boosts + 
+                      cell.HT_defusers*EvKs.HT_defs + 
+                      cell.ST_defusers*EvKs.ST_defs + 
+                      cell.SP_defusers*EvKs.SP_defs + 
+                      cell.HP_defusers*EvKs.HP_defs) 
+            print(f"{location} rated as: {rating}")
+            cell_dict[location].rating = rating
+        return cell_dict
+            
+    def playable_points(self):
+        '''
+        Returns a list of points which the next player's moves are tactically limited to. The default is to return the entire play area, but this is shrunk by enemy threats.
+        
+        Returns
+        -------
+        points : list of x,y coordinate tuples
+            Move locations that don't guarantee a loss if possible.'
+
+        '''
+        enemy = self.previous_player
+        # If there are hard threats against the next player
+        if self.PoTs_dict[enemy][HARD_THREAT]:
+            ## The only valid move locations are defusers of hard threats.
+            points = []
+            for HT in self.PoTs_dict[enemy][HARD_THREAT]:
+                points.extend(HT.defuser_locs)
+            return [(int(x),int(y)) for x,y in set(points)]
+        # elif there are soft threats against the next player
+        elif self.PoTs_dict[enemy][SOFT_THREAT]:
+            # The only valid move locations are defusers of soft threats or triggers of hard powers.
+            points = []
+            for ST in self.PoTs_dict[enemy][SOFT_THREAT]:
+                points.extend(ST.defuser_locs)
+            for HP in self.PoTs_dict[self.next_player][HARD_POWER]:
+                points.extend(HP.trigger_locs)
+            return [(int(x),int(y)) for x,y in set(points)]
+        # Else if there are no threats against the current player
+        else:
+            return self.empty_locs()
                 
     
     def draw_board(self):
@@ -754,6 +982,7 @@ class FIAR():
         for PoT in self.PoTs:
             #print(f"PoTtype: {PoTtype}")
             PoTtype = type(PoT)
+            print(f"PoT: {PoT}")
             color = COLOR_DICT[PoT.player]
             #if PoT is a power:
             if PoTtype in [SOFT_POWER,HARD_POWER]:
@@ -780,7 +1009,18 @@ class FIAR():
                 for x,y in PoT.defuser_locs:
                     self.ax.text(x+X1DCOMP,y+Y1DCOMP,D_MARKER[PoTtype], color=color, fontdict = D_MARKERDICT[PoTtype])
             elif PoTtype == SPOT_TEMPLATE:
-                pass
+                if DEBUGGING:
+                    # print("draw_PoTs detected a spot")
+                    # print(f"Spot: {PoT}")
+                    ## Draw trigger locations for SPots
+                    # print(f"PoT.trigger_locs: {PoT.trigger_locs}")
+                    # print(f"list(zip(*PoT.trigger_locs)): {list(zip(*PoT.trigger_locs))}")
+                    for x, y in PoT.trigger_locs:
+                        self.ax.text(x+SPT_X_CORR,y+SPT_Y_CORR,SPOT_MARKER[color], color = color, fontdict = SPOT_MARKERDICT)
+            elif PoTtype == HPOT_TEMPLATE:
+                if DEBUGGING:
+                    for x,y in PoT.booster_locs:
+                        self.ax.text(x+SPT_X_CORR,y+SPT_Y_CORR,HPOT_MARKER[color], color = color, fontdict = HPOT_MARKERDICT)
                 
                 
     
@@ -853,7 +1093,31 @@ class FIAR():
         self.switch_player()
         self.next_move -=1
         
+    def df_states(self):
+        '''
+        Returns a generator which yields a dataframe for each state of the game, starting with the completion of the first move.
 
+        Yields
+        ------
+        df pandas.DataFrame
+            Record of all moves made in the game up to that point.
+
+        '''
+        for row in range(1,self.df.shape[0]+1):
+            yield self.df[:row]
+    
+    def df_rows(self):
+        '''
+        Returns a generator which yields a row from the dataframe representing each move.
+
+        Yields
+        ------
+        df pandas.DataFrame
+            A row representing a single move in the game.
+
+        '''
+        for rowi in range(self.df.shape[0]):
+            yield self.df.iloc[rowi,:] 
     
     def d_to_edge(self,edge):
         '''calculates the minimum distance from every point to a given edge
@@ -882,25 +1146,26 @@ class FIAR():
         for rowi in range(self.df.shape[0]):
             x,y,player = self.df[['x','y','player']].iloc[rowi,:]
             i,j = self.xy_to_ij((x,y))
-            matrix[i,j]= PLAYER_CHARS[player]
+            matrix[i,j]= PLAYER2MARKER[player]
         self.matrix = matrix
     
-    def check_victory(self, queue):
-        if queue == RED_VICTORY:
-            ## END THE GAME
-            print('Red Wins! Congratulations!')
-            filename = FIAR.save_name_input()
-            self.to_csv(filename, folder=RECORDS_FOLDER)
-            exit()
-        elif queue == BLACK_VICTORY:
-            ## END THE GAME
-            print('Black wins! Congratulations!')
-            filename = FIAR.save_name_input()
-            self.to_csv(filename, folder=RECORDS_FOLDER)
-            exit()    
+    # def check_victory(self, queue):
+    #     if queue == RED_VICTORY:
+    #         ## END THE GAME
+    #         print('Red Wins! Congratulations!')
+    #         filename = FIAR.save_name_input()
+    #         self.to_csv(filename, folder=RECORDS_FOLDER)
+    #         exit()
+    #     elif queue == BLACK_VICTORY:
+    #         ## END THE GAME
+    #         print('Black wins! Congratulations!')
+    #         filename = FIAR.save_name_input()
+    #         self.to_csv(filename, folder=RECORDS_FOLDER)
+    #         exit()    
 
     def update_PoTs(self):
         global victory
+        victory_detected = False
         ## create all queues
         all_queues = self.queues_gen()
         all_PoTs = []
@@ -914,6 +1179,7 @@ class FIAR():
                 line_STs = []
                 line_HTs = []
                 line_Spots = []
+                line_Hpots = []
                 ## for each type of power and threat
                 for queue6, head_loc, tail_dir in line_queues:
                     #print(f"queue6: {queue6}, head_loc: {head_loc}, tail_dir: {tail_dir}")
@@ -923,14 +1189,17 @@ class FIAR():
                     if queue5 == RED_VICTORY:
                         #print("Red victory detected")
                         victory = 'red'
+                        victory_detected = True
                     elif queue5 == BLACK_VICTORY:
                         victory = 'black'
+                        victory_detected = True
                         #print("Black victory detected")
                     for line_storage, PATTERNS, queue in[[line_SPs, SP_Temps,queue6],
                                                          [line_HPs, HP_Temps, queue5],
                                                          [line_STs, ST_Temps, queue6 ],
                                                          [line_HTs, HT_Temps, queue5],
-                                                         [line_Spots, SPot_Temps, queue6]]:                        
+                                                         [line_Spots, SPot_Temps, queue6],
+                                                         [line_Hpots, HPot_Temps, queue5]]:                        
                         for pattern in PATTERNS:
                             ## Context of a single queue being compaed to a single pattern
                             if queue == pattern.match_pat:
@@ -939,16 +1208,24 @@ class FIAR():
                                 #print(f"marker_locs: {marker_locs}")
                                 trigger_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_triggers]
                                 defuser_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_defusers]
+                                booster_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_boosters]
                                 PoTtype = pattern.name[0:2]
                                 #print(f"PoTtype: {PoTtype}")
                                 PoT_Template = {'SP':SOFT_POWER,
                                                 'HP':HARD_POWER,
                                                 'ST':SOFT_THREAT,
                                                 'HT':HARD_THREAT,
-                                                'Sp':SPOT_TEMPLATE}[PoTtype]
+                                                'Sp':SPOT_TEMPLATE,
+                                                'Hp':HPOT_TEMPLATE}[PoTtype]
                                 PoT = None
-                                if PoTtype in ['SP','Sp','HP']:
+                                if PoTtype == 'SP':
+                                    PoT = PoT_Template([pattern.name], pattern.player, marker_locs, trigger_locs, booster_locs, defuser_locs)
+                                elif PoTtype == 'Hp':
+                                    PoT = PoT_Template([pattern.name], pattern.player, marker_locs, booster_locs)
+                                elif PoTtype =='Sp':
                                     PoT = PoT_Template([pattern.name], pattern.player, marker_locs, trigger_locs)
+                                elif PoTtype =='HP':
+                                    PoT = PoT_Template([pattern.name], pattern.player, marker_locs, trigger_locs, defuser_locs)
                                 elif PoTtype in ['ST','HT']:
                                     PoT = PoT_Template([pattern.name], pattern.player, marker_locs, defuser_locs)
                                 else:
@@ -961,18 +1238,28 @@ class FIAR():
                 line_STs = self.collapse_PoTs(line_STs)
                 line_HTs = self.collapse_PoTs(line_HTs)
                 line_Spots = self.collapse_PoTs(line_Spots)
+                line_Hpots= self.collapse_PoTs(line_Hpots)
                 ## compare PoTs heirarchically to eliminate duplicates.
                 line_master_PoTs = list(line_HTs)
-                line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs,line_STs))
-                line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs,line_HPs))
-                line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs,line_SPs))  
-                line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs, line_Spots))                
+                line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs, line_STs))
+                line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs, line_HPs))
+                line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs, line_SPs))  
+                line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs, line_Hpots))                
+                line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs, line_Spots))
                 all_PoTs.extend(line_master_PoTs)
         self.PoTs = all_PoTs
-        print("Powers Or Threats:")
-        for PoT in self.PoTs:
-            if type(PoT) != SPOT_TEMPLATE:
-                print(PoT)
+        # if DEBUGGING:
+        #     print("Powers Or Threats:")
+        #     for PoT in self.PoTs:
+        #         if type(PoT) != SPOT_TEMPLATE:
+        #             print(PoT)
+        #     print("Spots:")
+        #     for PoT in self.PoTs:
+        #         if type(PoT) == SPOT_TEMPLATE:
+        #             print(PoT)
+        
+        if not victory_detected:
+            victory = False
             
     def nonrepeat_PoTs(self,master_list, list_):
         '''
@@ -1020,9 +1307,25 @@ class FIAR():
                         match = False
                 if match: #If marker locations are shared
                     match_none = False
+                    ##Combine all triggers. Perform an OR on the sets.
                     for trigger_loc in getattr(PoT,'trigger_locs',[]):
                         if trigger_loc not in getattr(col_PoT,'trigger_locs', []):
                             col_PoT.trigger_locs.append(trigger_loc)
+                    ## Combine all boosters. Perform an OR on the sets.
+                    for booster_loc in getattr(PoT,'booster_locs',[]):
+                        if booster_loc not in getattr(col_PoT,'booster_locs', []):
+                            col_PoT.booster_locs.append(booster_loc)
+                    ## Find defusers in common. Perform an AND on the sets.
+                    defuser_locs = []
+                    for defuser_loc in getattr(col_PoT,'defuser_locs',[]):
+                        if defuser_loc in getattr(PoT, 'defuser_locs',[]):
+                            defuser_locs.append(defuser_loc)
+                    if defuser_locs:
+                        # Empty list
+                        for _ in range(len(col_PoT.defuser_locs)):
+                            col_PoT.defuser_locs.pop()
+                        # Extend list with new contents
+                        col_PoT.defuser_locs.extend(defuser_locs)
                     col_PoT.names.extend(PoT.names)
             if match_none: #This is a unique PoT
                 collapsed_PoTs.append(PoT)
@@ -1156,12 +1459,123 @@ class FIAR():
             locs.extend(self.edge_coords(edge))
         return set(locs)       
 
- 
+    def cell_dict_gen(self):
+        cell_dict = {}
+        for loc in self.empty_locs():
+            cell_dict[loc] = Cell(loc)
+        friend = self.next_player
+        enemy = self.previous_player
+        for PoT in self.PoTs:
+            ptype = type(PoT)
+            if PoT.player == friend:
+                if ptype == HARD_THREAT:
+                    ## add hard threat defusers to the Cell at the proper location.
+                    for def_loc in PoT.defuser_locs:
+                        cell_dict[def_loc].HT_finish+=1
+                elif ptype == SOFT_THREAT:
+                    ## Add hard threat defusers
+                    for def_loc in PoT.defuser_locs:
+                        cell_dict[def_loc].ST_finish +=1
+                elif ptype == HARD_POWER:
+                    ## Add hard power triggers
+                    for trig_loc in PoT.trigger_locs:
+                        cell_dict[trig_loc].HP_triggers +=1
+                elif ptype == SOFT_POWER:
+                    ## Add soft power triggers
+                    for trig_loc in PoT.trigger_locs:
+                        cell_dict[trig_loc].SP_triggers +=1
+                    for bstr_loc in PoT.booster_locs:
+                        cell_dict[bstr_loc].boosters +=1
+                elif ptype == SPOT_TEMPLATE:
+                    ## Add SPot triggers
+                    for trig_loc in PoT.trigger_locs:
+                        cell_dict[trig_loc].SPot_triggers +=1
+                elif ptype == HPOT_TEMPLATE:
+                    ## Add HPot template
+                    for bstr_loc in PoT.booster_locs:
+                        cell_dict[bstr_loc].boosters +=1
+            elif PoT.player == enemy:
+                if ptype == HARD_THREAT:
+                    ## add hard threat defusers
+                    for def_loc in PoT.defuser_locs:
+                        cell_dict[def_loc].HT_defusers += 1
+                elif ptype == SOFT_THREAT:
+                    ## add soft threat defusers
+                    for def_loc in PoT.defuser_locs:
+                        cell_dict[def_loc].ST_defusers += 1
+                elif ptype == SOFT_POWER:
+                    ## add soft power defusers
+                    for def_loc in PoT.defuser_locs:
+                        cell_dict[def_loc].SP_defusers += 1
+                elif ptype == HARD_POWER:
+                    ## add hard power defusers
+                    for def_loc in PoT.defuser_locs:
+                        cell_dict[def_loc].HP_defusers += 1
+            else:
+                raise Exception(f"'{PoT.player}' is not supposed to be an option.")
+        # print(f"cell_dict: {cell_dict}")
+        # print(f"playable_points: {self.playable_points()}")
+        # limited_cell_dict = {key:val for key, val in cell_dict.items() if key in self.playable_points()}
+        return cell_dict
+
+    def board_locs(self):
+        '''
+        Returns a list of all locations on the board
+
+        Returns
+        -------
+        points : list of (x,y) int tuples.
+            Every point on the board, occupied or otherwise.
+
+        '''
+        points = []
+        for x in np.arange(self.left_edge+0.5, self.right_edge+0.5):
+            for y in np.arange(self.bottom_edge+0.5, self.top_edge+0.5):
+                points.append((int(x),int(y)))
+        return points
+    
+    def empty_locs(self):
+        '''
+        Returns a list of all empty spaces on the board.
+
+        Returns
+        -------
+        empty_locs : list of (x,y) int tuples
+            Every point on the board that is unoccupied.
+
+        '''
+        all_points = self.board_locs()
+        taken_points = self.taken_locs()
+        empty_locs = []
+        for point in all_points:
+            if point not in taken_points:
+                empty_locs.append(point)
+        return empty_locs
+
+    def taken_locs(self):
+        '''
+        Returns a list of all occupied locations on the board
+
+        Returns
+        -------
+        taken_locs : list of (x,y) int tuples
+            Every point on the board that is occupied
+
+        '''
+        nplist = list(self.df[['x','y']].values)
+        taken_locs = [(int(x),int(y)) for x,y in nplist]
+        return taken_locs
+
     def switch_player(self):
         if self.next_player == 'black':
            self.next_player = 'red'
         elif self.next_player == 'red':
             self.next_player = 'black'
+    
+    @property
+    def previous_player(self):
+        return {'red':'black',
+                'black':'red'}[self.next_player]
         
     def loc_taken(self, loc):
         '''
