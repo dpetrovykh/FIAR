@@ -18,19 +18,35 @@ import types
 from collections import namedtuple
 import itertools as it
 import math
+import random
 
-DEBUGGING = True
+##Debugging constants that trigger print statements
+SHOW_PoTs = False
+SHOW_SPots = False
+SHOW_HPots = False
+PRINT_CELL_CHOICE = True
+SHOW_Evals = False
+## Debugging constants that trigger overlay elements to be displayed
+DRAW_SPOTS = False
+DRAW_HPOTS = False
 
-GRIDCOLOR = 'black'
+## Constants
+# GRIDCOLOR = 'black'
+# GRIDALPHA = 0.3
+# GRIDWIDTH = 0.5
+GRID_DICT = {'color': 'black',
+             'alpha': 0.3,
+             'linewidth':0.5}
 GRID_MARKER_SPACING = int(3)
 FIGSIZE = 0.5
-TILE_ALPHA = 0.6
-TILE_COLOR = 'yellow'
-X1DCOMP = -0.2
-Y1DCOMP = -0.2
-X2DCOMP = -0.35
-Y2DCOMP = -0.2
-TEXTSIZE = 14
+# TILE_ALPHA = 0.2
+# TILE_COLOR = 'yellow'
+TILE_DICT = {'alpha':0.2,
+             'color':'yellow'}
+X1DCOMP = -0.1 #-0.2
+Y1DCOMP = -0.1 #-0.2
+X2DCOMP = 0 #-0.35
+Y2DCOMP = -0.1 #-0.2
 PLAYERS = ['black','red']
 DISPLAYS = ['other','Jupyter']
 DF_TEMP = pd.DataFrame({'marker':[],
@@ -38,6 +54,13 @@ DF_TEMP = pd.DataFrame({'marker':[],
                            'y':[],
                            'player':[]})
 MIN_EDGE_GAP = 3
+NUM_DICT = {'size':17,
+            'alpha':1,
+            'horizontalalignment':'center',
+            'verticalalignment':'center',
+            'fontstyle':'normal'}
+
+
 EMPTY_CHAR = '+'
 PLAYER2MARKER = {'red':'r',
                      'black':'b'}
@@ -156,17 +179,18 @@ HPOT_MARKERDICT = {'size': 10,
 
 ## Evaluator Constants
 
-EVAL_CONSTANTS = namedtuple('Eval_Constants','HT_fins ST_fins HP_trigs SP_trigs SPot_trigs boosts HT_defs ST_defs SP_defs HP_defs')
+EVAL_CONSTANTS = namedtuple('Eval_Constants','HT_fins ST_fins HP_trigs SP_trigs SPot_trigs boosts HT_defs ST_defs SP_defs HP_defs SPot_blocks')
 EvKs = EVAL_CONSTANTS(HT_fins= 1000,
                                 ST_fins = 50,
-                                HP_trigs = 0.1,
-                                SP_trigs = 1,
+                                HP_trigs = 1,
+                                SP_trigs = 1.25,
                                 SPot_trigs = 1,
-                                boosts = 1,
+                                boosts = 0.5,
                                 HT_defs = 100,
                                 ST_defs = 10,
-                                SP_defs = 0.5,
-                                HP_defs = 0.5)
+                                SP_defs = 0.75,
+                                HP_defs = 0.75,
+                                SPot_blocks = 0.01)
 
 ##Globals
 view_index = 0 #index of latest row which is to be displayed.
@@ -221,6 +245,7 @@ Red_SPot_Temps = pattern_processing(RAW_Spots, 'red')
 Black_SPot_Temps = pattern_processing(RAW_Spots, 'black')
 SPot_Temps = list(Red_SPot_Temps)
 SPot_Temps.extend(Black_SPot_Temps)
+#print(f"SPot_Temps: {SPot_Temps}")
 ##Soft Powers
 Red_SP_Temps = pattern_processing(RAW_SPs, 'red')
 Black_SP_Temps = pattern_processing(RAW_SPs, 'black')
@@ -261,9 +286,22 @@ class Cell():
         self.ST_defusers   = 0
         self.SP_defusers   = 0
         self.HP_defusers   = 0
+        self.EN_SPot_triggers = 0
 
     def __str__(self):
-        return f"coords      = {self.coords}\nrating      = {self.rating}\nHT_finish     = {self.HT_finish}\nST_finish     = {self.ST_finish}\nHP_triggers   = {self.HP_triggers}\nSP_triggers   = {self.SP_triggers}\nSPot_triggers = {self.SPot_triggers}\nboosters      = {self.boosters}\nHT_defusers   = {self.HT_defusers}\nST_defusers   = {self.ST_defusers}\nSP_defusers   = {self.SP_defusers}\nHP_defusers   = {self.HP_defusers}"
+        return f"""coords      = {self.coords}
+    rating      = {self.rating}
+    HT_finish     = {self.HT_finish} * {EvKs.HT_fins}
+    ST_finish     = {self.ST_finish} * {EvKs.ST_fins}
+    HP_triggers   = {self.HP_triggers} * {EvKs.HP_trigs}
+    SP_triggers   = {self.SP_triggers} * {EvKs.SP_trigs}
+    SPot_triggers = {self.SPot_triggers} * {EvKs.SPot_trigs}
+    boosters      = {self.boosters} * {EvKs.boosts}
+    HT_defusers   = {self.HT_defusers} * {EvKs.HT_defs}
+    ST_defusers   = {self.ST_defusers} * {EvKs.ST_defs}
+    SP_defusers   = {self.SP_defusers} * {EvKs.SP_defs}
+    HP_defusers   = {self.HP_defusers} * {EvKs.HP_defs}
+    EN_SPot_triggers={self.EN_SPot_triggers} * {EvKs.SPot_blocks}"""
         
 class RepeatMove(Exception):
     pass
@@ -443,7 +481,7 @@ class FIAR():
                 #print(f"Victory Detected for {victory}")
                 print(f"{victory.capitalize()} wins! Congratulations!")
                 victory = False
-                print(f"victory set to: {victory}")
+                #print(f"victory set to: {victory}")
                 filename = FIAR.save_name_input()
                 if filename: #If the user saved the game after completing
                     game.to_csv(filename, folder=RECORDS_FOLDER)
@@ -460,7 +498,7 @@ class FIAR():
                 if ai_color == game.next_player:
                     print("AI is making a move...")
                     ## the AI makes a move.
-                    coords = FIAR.game_decider(game, FIAR.evaluator_sum)
+                    coords = FIAR.game_decider(game, FIAR.evaluate_point_sum)
                     game.move(*coords)
                     print("...AI move complete.")
                 else: #It is either a regular game or it is the human's turn
@@ -759,6 +797,15 @@ class FIAR():
         self.PoTs_dict = PoTs_dict
     
     @staticmethod
+    def point_evaluater(game, evaluator):
+        cell_dict = game.cell_dict_gen()
+        def evaluate_point(x,y): 
+            cell = cell_dict[(x,y)]
+            cell.rating = evaluator(cell)
+            print(cell)
+        return evaluate_point        
+    
+    @staticmethod
     def game_decider(game, evaluator):
         '''
         Accepts a FIAR game, applies an evaluator to its cells, and returns a reccomended move
@@ -778,18 +825,54 @@ class FIAR():
         cell_dict = game.cell_dict_gen()
         #print(f"original cell_dict: {cell_dict}")
         ## Limit entries in cell dict
-        limited_cell_dict = {key:val for key, val in cell_dict.items() if key in game.playable_points()}
+            #limited_cell_dict = {key:val for key, val in cell_dict.items() if key in game.playable_points()}
         ## Apply evaluator to cell_dict
-        limited_cell_dict = evaluator(limited_cell_dict)
+        cell_dict = FIAR.evaluate_cell_dict(cell_dict, evaluator)
         #print(f"eval'd, limited cell_dict: {limited_cell_dict}")
         ## Choose cell with maximum value
-        max_cell = max(limited_cell_dict.values(), key = lambda cell: cell.rating)
-        print(f"max cell: {max_cell}")
+        
+        ## From internet
+        cells = cell_dict.values()
+        maxRating = max(cells, key = lambda cell: cell.rating).rating
+        chosen_cell = None
+        if maxRating > EvKs.SPot_blocks:
+            max_cells = [cell for cell in cells if cell.rating ==maxRating]
+            chosen_cell = random.choice(max_cells)
+        elif maxRating ==0:
+            chosen_cell = cell_dict[(0,0)]
+        else: #0>x>'EvKs.SPot_blocks
+            ## find a cell close to previous cell
+            print("game_decider: There are no good choices!")
+            random_taken = random.choice(game.taken_locs())
+            chosen = False
+            while chosen == False:
+                location = (random_taken[0]+random.randint(-2,2),
+                            random_taken[1]+random.randint(-2,2))
+                if location not in game.taken_locs():
+                    chosen = True
+                    chosen_cell = cell_dict[location]
+        if PRINT_CELL_CHOICE:
+            print(f"chosen_cell: {chosen_cell}")
+        
         ## return location of cell with maximum value
-        return max_cell.coords
+        return chosen_cell.coords
     
     @staticmethod
-    def evaluator_sum(cell_dict):
+    def evaluate_point_sum(cell):
+        return (cell.HT_finish*EvKs.HT_fins + 
+                      cell.ST_finish*EvKs.ST_fins + 
+                      cell.HP_triggers*EvKs.HP_trigs + 
+                      cell.SP_triggers*EvKs.SP_trigs +
+                      cell.SPot_triggers*EvKs.SPot_trigs + 
+                      cell.boosters*EvKs.boosts + 
+                      cell.HT_defusers*EvKs.HT_defs + 
+                      cell.ST_defusers*EvKs.ST_defs + 
+                      cell.SP_defusers*EvKs.SP_defs + 
+                      cell.HP_defusers*EvKs.HP_defs +
+                      cell.EN_SPot_triggers*EvKs.SPot_blocks) 
+    
+    @staticmethod
+    def evaluate_cell_dict(cell_dict, evaluator):
         '''
         Scans every cell in a cell_dict and populates the 'rating' field. 
         
@@ -812,17 +895,9 @@ class FIAR():
 
         '''
         for location, cell in cell_dict.items():
-            rating = (cell.HT_finish*EvKs.HT_fins + 
-                      cell.ST_finish*EvKs.ST_fins + 
-                      cell.HP_triggers*EvKs.HP_trigs + 
-                      cell.SP_triggers*EvKs.SP_trigs +
-                      cell.SPot_triggers*EvKs.SPot_trigs + 
-                      cell.boosters*EvKs.boosts + 
-                      cell.HT_defusers*EvKs.HT_defs + 
-                      cell.ST_defusers*EvKs.ST_defs + 
-                      cell.SP_defusers*EvKs.SP_defs + 
-                      cell.HP_defusers*EvKs.HP_defs) 
-            print(f"{location} rated as: {rating}")
+            rating = evaluator(cell)
+            if SHOW_Evals:
+                print(f"{location} rated as: {rating}")
             cell_dict[location].rating = rating
         return cell_dict
             
@@ -893,15 +968,16 @@ class FIAR():
                        right=False)
         ## Drawing the grid lines
         for x in np.arange(self.left_edge,self.right_edge+1):
-            self.ax.axvline(x, color = GRIDCOLOR)
+            # self.ax.axvline(x, color = GRIDCOLOR, linewidth = 1, alpha = 0.5)
+            self.ax.axvline(x, **GRID_DICT)
         for y in np.arange(self.bottom_edge,self.top_edge+1):
-            self.ax.axhline(y, color = GRIDCOLOR)
+            self.ax.axhline(y, **GRID_DICT)
         
         ## Drawing the grid squares
         for x in np.arange(self.left_edge, self.right_edge):
             for y in np.arange(self.bottom_edge, self.top_edge):
                 if (np.abs(x+0.5)+np.abs(y+0.5))%2==1:
-                    rect = plt.Rectangle((x,y),1,1, alpha=TILE_ALPHA, color = TILE_COLOR)
+                    rect = plt.Rectangle((x,y),1,1, **TILE_DICT)
                     self.ax.add_artist(rect)
                     
         ## Draw the grid markers
@@ -966,13 +1042,13 @@ class FIAR():
                          y+Y1DCOMP,
                          str(int(num)),
                          color=color,
-                         size = TEXTSIZE)
+                         fontdict=NUM_DICT)
         elif len(str(int(num)))==2:
             self.ax.text(x+X2DCOMP,
                          y+Y2DCOMP,
                          str(int(num)),
                          color=color,
-                         size = TEXTSIZE)
+                         fontdict=NUM_DICT)
         else:
             raise Exception("There's been a terrible error")
         plt.close(self.fig)
@@ -982,7 +1058,7 @@ class FIAR():
         for PoT in self.PoTs:
             #print(f"PoTtype: {PoTtype}")
             PoTtype = type(PoT)
-            print(f"PoT: {PoT}")
+            #print(f"PoT: {PoT}")
             color = COLOR_DICT[PoT.player]
             #if PoT is a power:
             if PoTtype in [SOFT_POWER,HARD_POWER]:
@@ -1009,7 +1085,7 @@ class FIAR():
                 for x,y in PoT.defuser_locs:
                     self.ax.text(x+X1DCOMP,y+Y1DCOMP,D_MARKER[PoTtype], color=color, fontdict = D_MARKERDICT[PoTtype])
             elif PoTtype == SPOT_TEMPLATE:
-                if DEBUGGING:
+                if DRAW_SPOTS:
                     # print("draw_PoTs detected a spot")
                     # print(f"Spot: {PoT}")
                     ## Draw trigger locations for SPots
@@ -1018,7 +1094,7 @@ class FIAR():
                     for x, y in PoT.trigger_locs:
                         self.ax.text(x+SPT_X_CORR,y+SPT_Y_CORR,SPOT_MARKER[color], color = color, fontdict = SPOT_MARKERDICT)
             elif PoTtype == HPOT_TEMPLATE:
-                if DEBUGGING:
+                if DRAW_HPOTS:
                     for x,y in PoT.booster_locs:
                         self.ax.text(x+SPT_X_CORR,y+SPT_Y_CORR,HPOT_MARKER[color], color = color, fontdict = HPOT_MARKERDICT)
                 
@@ -1248,15 +1324,21 @@ class FIAR():
                 line_master_PoTs.extend(self.nonrepeat_PoTs(line_master_PoTs, line_Spots))
                 all_PoTs.extend(line_master_PoTs)
         self.PoTs = all_PoTs
-        # if DEBUGGING:
-        #     print("Powers Or Threats:")
-        #     for PoT in self.PoTs:
-        #         if type(PoT) != SPOT_TEMPLATE:
-        #             print(PoT)
-        #     print("Spots:")
-        #     for PoT in self.PoTs:
-        #         if type(PoT) == SPOT_TEMPLATE:
-        #             print(PoT)
+        if SHOW_PoTs:
+            print("Powers Or Threats:")
+            for PoT in self.PoTs:
+                if type(PoT) not in [SPOT_TEMPLATE,HPOT_TEMPLATE]:
+                    print(PoT)
+        if SHOW_SPots:
+            print("SPots:")
+            for PoT in self.PoTs:
+                if type(PoT) == SPOT_TEMPLATE:
+                    print(PoT)
+        if SHOW_HPots:
+            print("HPots:")
+            for PoT in self.PoTs:
+                if type(PoT) == HPOT_TEMPLATE:
+                    print(PoT)
         
         if not victory_detected:
             victory = False
@@ -1511,6 +1593,10 @@ class FIAR():
                     ## add hard power defusers
                     for def_loc in PoT.defuser_locs:
                         cell_dict[def_loc].HP_defusers += 1
+                elif ptype == SPOT_TEMPLATE:
+                    ## Add SPot triggers
+                    for trig_loc in PoT.trigger_locs:
+                        cell_dict[trig_loc].EN_SPot_triggers +=1
             else:
                 raise Exception(f"'{PoT.player}' is not supposed to be an option.")
         # print(f"cell_dict: {cell_dict}")

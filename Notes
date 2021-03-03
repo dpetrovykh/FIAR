@@ -577,25 +577,36 @@ Tuesday, March 2:
 8:00 - 8:20 (0:20)
 9:45 - 11:00 (1:15)
 11:40 - 13:10 (1:30) 
-
+15:30
+17:30
     TODO:
         * [DONE] Modify cell_dict_gen() to not restrict output
         * [DONE] Have PoTs_dict automatically update.
         * [DONE] Evaluator
         * [DONE] Decider
         * [DONE] Modify game_loop and make AI_move
+        * [DONE] Make AI choose random location if there is a tie in the evaluator score.
+        * [DONE] make cell description more detailed by showing weights of each item
+        * [DONE] add more controls at top of scrip to control overlay detail.
+        * [DONE] add special case for first move as second player to place close to start
+        * [] create AI debugging environment where I can step though a game and observe the AI's decision-making process.
         
     PROBABLY DO LATER:
         * [] Restructure user menu to reduce code repetition.
+        * [DONE] Eliminate "playable_points", since the weighted sum constants effectively do that job already.
         
     MAYBE DO:
-        * [] Add a category to the cell for blocking enemy Spots with minimal value to prevent completely stupid moves. Maybe more will be needed
-        * [] add a category of patterns which are winning moves, so as not to confuse them with simple threats.
+        * [DONE][INSUFFICIENT]. Add a category to the cell for blocking enemy Spots with minimal value to prevent completely stupid moves. Maybe more will be needed
+        * [IGNORE] add a category of patterns which are winning moves, so as not to confuse them with simple threats.
+        * [DONE] create some way to query points on a board and get a readout for how it is rated.
     
     BUGS:
         * [] undo confuses the AI
-        * [] potentially counts ST as booster
-        * [] did not trigger game-winning hard power.
+        * [FINE] potentially counts ST as booster. Maybe it should, since both are true.
+        * [] did not trigger game-winning hard power. This was because the PPS did not include that point because of a soft threat against the AI.
+        * [] Two enemy SP triggers in the same spot not recognized as dangerous.
+        * [RECOGNIZED] SPot triggers are not being properly recognized.
+        *** [] it is neccessary for the board to be a certain size to recognize patterns like efeeee. This should be fixed by making the board display size and the scanning bounds independent. For now, a bigger board. This will also affect how players move, since we will need to be able to move off the board if we make a thin border.
 
     AI:
         FUNCTIONS:
@@ -660,9 +671,39 @@ Tuesday, March 2:
             |    1 |6.     |SP_triggers: Applying pressure is important
             |   0.5|7.     |HP_defusers: Nice to rid opponent of HP
             |   0.5|8.     |SP_defusers: Nice to rid opponent of SP
-            |   0.1|7.     |HP_triggers: Unclear when to use HP, so will mostly ignore. Might make it difficult to win, but whatever.
+            |   0.1|9.     |HP_triggers: Unclear when to use HP, so will mostly ignore. Might make it difficult to win, but whatever.
+            |  0.01|10.    |enemy_SPot_trigger: prevent enemy from being able to generate a soft power.
 
-        QUESTIONS:
-            * The presence of friendly Hard Power allows one to ignore soft threats for a time, but when do you choose to use them that way?
-                * I think I only do it when I think I can win later. Mathematically and simplistically, this might just mean when I can create another hard power as a result.
-            * 
+    QUESTIONS:
+        * The presence of friendly Hard Power allows one to ignore soft threats for a time, but when do you choose to use them that way?
+            * I think I only do it when I think I can win later. Mathematically and simplistically, this might just mean when I can create another hard power as a result.
+    NOTICING VICTORY:
+        * Some soft powers and hard powers are actually winning arrangements that simply need to be filled-in. These must be recognized to properly motivate
+        * WHAT IS A POTENTIALLY GAME_WINNING SCENARIO?
+            * Any friendly threats may be game-winning.
+            * In the case of HTs, the AI should know how to win and do so.
+            * In the case of STs, the AI should try to win and might; it make choose to go in the incorrect spot within the ST.
+    
+    PREVENTING STUPID MOVES IN BEGINNING: 
+        * There is currently no reason for the AI to make any move on turn one. In the case of the first move, it has one choice and performs ok. In the case of the second move, it just goes in a useless corner.
+        * I could add some score for going in an enemy's SPot trigger. This would require scanning through many SPots and potentially slow the computer's decision-making
+            * This doesn't entirely work, since there are many SPot triggers around 0,0. So the AI just goes somewhere there.
+        * This is partially helped by making the ai choose randomly from any tiles which each have the highest rating.
+        * This is further helped by a special case that has the ai go in a random space within two of an alread-occupied tile if the choices of tiles is very poor.
+        * This is further helped by a special case that has the ai go to (0,0) if the tile rating are all 0. This should only occur if the ai is playing the '1'.
+        
+Wednesday, March 3:
+8:50 - 
+    TODO:
+        * [DONE] [FOR NOW]Improve visibility of pieces on board
+        * [] Fix border display/scanning interdependencies
+            * [] Make scanner start with "empty" characters
+            * [] make scanner extend proper amount past the edge of the currently-displayed board
+            * [] Allowing players to move off the board
+        
+    MAKING THE BOARD WORK BETTER:
+        * I could have the board be the proper size to allow for scanning every which way and then just limit the display function.
+        * I could allow the scanning function to go beyond the board as it exists.
+        * I'd like the matrix of the board to be the minimum possible size, but then it needs to return empty values for values off the grid. getattr()?
+    
+        
