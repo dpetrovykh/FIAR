@@ -9,7 +9,7 @@ from FIAR import FIAR
 
 #Create a new game
 game = FIAR()
-game.draw_board()
+game.display_all()
 #Start making moves
 game.move(0,0)
 game.move(1,1)
@@ -18,25 +18,25 @@ game.move(0,1)
 game.move(-1,1)
 game.move(2,1)
 game.move(-2,0)
-game.move(1,3)
-game.move(-4,-2)
-game.move(1,0)
-game.move(-1,0)
-game.move(-3,0)
-game.move(0,-1)
-game.move(1,2)
-game.move(1,-1)
-game.move(3,1)
-game.move(4,1)
-for x,y in [(2,0),
-            (2,2),
-            (3,0),
-            (-2,1),
-            (-2,-1),
-            (-2,-2),
-            (-1,3),
-            (0,4)]:
-    game.move(x,y)
+# game.move(1,3)
+# game.move(-4,-2)
+# game.move(1,0)
+# game.move(-1,0)
+# game.move(-3,0)
+# game.move(0,-1)
+# game.move(1,2)
+# game.move(1,-1)
+# game.move(3,1)
+# game.move(4,1)
+# for x,y in [(2,0),
+#             (2,2),
+#             (3,0),
+#             (-2,1),
+#             (-2,-1),
+#             (-2,-2),
+#             (-1,3),
+#             (0,4)]:
+#     game.move(x,y)
 # game.update_PoTs_dict()
 # # print(f" Cell_dict: {game.cell_dict_gen()}")
 # cell_dict = game.cell_dict_gen()

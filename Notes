@@ -460,16 +460,16 @@ Monday, March 1:
         * [] Add way to extract summary statistics on a game
         * [] add way to extract summary statistics on the entire history of a game
         * [] Add way to display summary statistic on a game
-        * [] Add way to judge the quality of a move
+        * [DONE] Add way to judge the quality of a move
         * [IGNORED] Create a separate viewer class to store the viewer_index and improve compartmentalization. 
-        * [] Add choice of whether to play 2 player or against a computer
+        * [DONE] Add choice of whether to play 2 player or against a computer
         
     PUT OFF:
         * [NEED INTERNET] Investigate the "AttributeError: module 'FIAR' has no attribute 'FIAR'" problem
         * [] Create a separate type for each pattern, so that we don't rely on matching the first two letters of the name, and all instances of "Spots" can become "SPots".
-        * [] Indicate in the viewer what step you are at.
-        * [] Investigate the creation of too many figures when drawing markers.
-        * [] limit number of saves in saves folder.
+        * [IGNORE] Indicate in the viewer what step you are at.
+        * [IGNORE] Investigate the creation of too many figures when drawing markers.
+        * [IGNORE] limit number of saves in saves folder.
         * [] Add comments to stuff, especially inputs and outputs of functions and their types.
         * [] Reassess categorization of class and static methods
         * [] Look into testing which interacts with the terminal.
@@ -603,10 +603,10 @@ Tuesday, March 2:
     BUGS:
         * [] undo confuses the AI
         * [FINE] potentially counts ST as booster. Maybe it should, since both are true.
-        * [] did not trigger game-winning hard power. This was because the PPS did not include that point because of a soft threat against the AI.
+        * [DONE] did not trigger game-winning hard power. This was because the PPS did not include that point because of a soft threat against the AI.
         * [] Two enemy SP triggers in the same spot not recognized as dangerous.
-        * [RECOGNIZED] SPot triggers are not being properly recognized.
-        *** [] it is neccessary for the board to be a certain size to recognize patterns like efeeee. This should be fixed by making the board display size and the scanning bounds independent. For now, a bigger board. This will also affect how players move, since we will need to be able to move off the board if we make a thin border.
+        * [DONE] SPot triggers are not being properly recognized.
+        *** [DONE] it is neccessary for the board to be a certain size to recognize patterns like efeeee. This should be fixed by making the board display size and the scanning bounds independent. For now, a bigger board. This will also affect how players move, since we will need to be able to move off the board if we make a thin border.
 
     AI:
         FUNCTIONS:
@@ -693,17 +693,69 @@ Tuesday, March 2:
         * This is further helped by a special case that has the ai go to (0,0) if the tile rating are all 0. This should only occur if the ai is playing the '1'.
         
 Wednesday, March 3:
-8:50 - 
+8:50 - 10:50 (2:00)
+11:05 - 11:40 (0:35)
+12:10 - 14:40 (2:30)
+15:40 - 16:25 (0:45)
     TODO:
         * [DONE] [FOR NOW]Improve visibility of pieces on board
-        * [] Fix border display/scanning interdependencies
-            * [] Make scanner start with "empty" characters
-            * [] make scanner extend proper amount past the edge of the currently-displayed board
-            * [] Allowing players to move off the board
+        * [TESTING] Fix border display/scanning interdependencies
+            * [DONE] Make scanner start with "empty" characters
+            * [DONE] make scanner extend proper amount past the edge of the current game board
+            * [DONE] Allowing players to move off the board
+            * [DONE] extract empty chars from matrix when asking for things out of bounds
+            * [DONE] investigate cy,ij conversions
+        * [DONE] FIXING AI
+            * [DONE] Fix playable_locs
+            * [DONE] get ai to play
+        *[FWD] not display board unil playing
+        * [FWD]  notice HP triggers that are also SP triggers
+        
+        
+    BUGS:
+        * [DONE] When drawing overlay, some triggers are drawn off the board.
+        * [] not drawing spacing markers. Drew it in the wrong place
+        * [DONE] turn 10, mackenzie's game 'iRobot', thinks it made 3 soft powers instead of 2 at (-3,0)
+        * [] viewer turns on in respons to 'n'
+        * [DONE] queues_gen IS GIVING US FAULTY QUEUES
         
     MAKING THE BOARD WORK BETTER:
         * I could have the board be the proper size to allow for scanning every which way and then just limit the display function.
         * I could allow the scanning function to go beyond the board as it exists.
         * I'd like the matrix of the board to be the minimum possible size, but then it needs to return empty values for values off the grid. getattr()?
     
+    CURRENT BOARD INFO:
+        * draw_board uses the game.left_edge, game.top_edge, etc params to determine the size of the board displayed.
+        * game.left_edge is set by initial size of board
+        * game.left_edge is increased by scanning through game and determining if there are pieces that are too close to the border.
+             * This is silly. Easier to simply find min/max of x/y for all moves, add the border thickness and set the new game edges.
+        * _move_ currently determines if a move is valid by comparing it to game.left_edges, etc, which is not something we want.
+
+Thursday, March 4:
+8:20 - 
+
+    TODO:
+        * [DONE] Fix AI
+        *[] not display board unil playing
+        * [] Notice friendly and enemy intersections of power
         
+    Thoughts:
+        * Could have rating for being on-grid with nearest friendly marker.
+        
+    What Special things to look for in a cell that doesn't simply fall under the weighted sum model?
+        * The presence of two or more friendly soft or hard power triggers. This is potentially game-winning, and going there should be a priority
+        * The presence of two or more enemy soft or hardpower triggers. This is also potentially game-ending.
+        PRIORITIES:
+            * Two friendly SP triggers are less important than defusing an enemy ST.
+            * One friendly HP trigger and one more SP or HP trigger is more important than an enemy ST.
+            * Two enemy SP triggers are less important than a ST_finish
+            * Two enemy HP triggers are less imporatnt than a HT finish or HT_def, but nothing else.
+    DESIRED AI BEHAVIOR:
+        * The ai , if faced with two STs, will prioritize a defuser which is also a friendly HP trigger
+        
+    WEIGHTED SUM AND SPECIAL CASES:
+        * The theory behind using a weighted sum is that it will inherently prioritize certain behaviors based on the weights.
+        * In special cases, like the increased importance of triggers when there are two of them, this weighted sum routine is superceded by another decision-making mechanism. If this decision-making mechanism affects the total calculated by the weighted sum, then this is a poor method, because it distorts the picture without any explanation.
+        * Currently, the weights are constants in an implied multiplicative relationship with their corresponding counts. Alternatively, the weights could themselves be complex functions. For example, the function for weighing the importance of SP_triggers could increase with their number. Maybe 1.25 points for 1 and 5 for more than 1. This could potentiall be approximated with some sort of parabolic function, but I am looking for something more piecewise.
+        * The use of piecewise functions for weighing counts assumes that there are no interactions between counts, but there are, like in the case of SP_trigs and HP_trigs. If there is one
+        * I must store the individual contributions to the total rating of a cell. This makes the most sense to do in the cell. There could be a named tuple for each category consisting of 'count' and 'value'.

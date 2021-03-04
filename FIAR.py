@@ -26,24 +26,26 @@ SHOW_SPots = False
 SHOW_HPots = False
 PRINT_CELL_CHOICE = True
 SHOW_Evals = False
+SHOW_QUEUES= False
 ## Debugging constants that trigger overlay elements to be displayed
 DRAW_SPOTS = False
 DRAW_HPOTS = False
 
 ## Constants
-# GRIDCOLOR = 'black'
-# GRIDALPHA = 0.3
-# GRIDWIDTH = 0.5
-GRID_DICT = {'color': 'black',
-             'alpha': 0.3,
-             'linewidth':0.5}
+G_SCALE = 4 # global scaler
+GRID_DICT = {'color': 'blue',
+             'alpha': 0.2,
+             'linewidth':0.5*G_SCALE}
 GRID_MARKER_SPACING = int(3)
-FIGSIZE = 0.5
+FIGSIZE = 0.5*G_SCALE
 # TILE_ALPHA = 0.2
 # TILE_COLOR = 'yellow'
 TILE_DICT = {'alpha':0.2,
              'color':'yellow'}
-X1DCOMP = -0.1 #-0.2
+GRID_MARKER = '+'
+GRID_MARKER_KWARGS = {'color':'grey',
+                      'markersize': 10*G_SCALE}
+X1DCOMP = 0 #-0.2
 Y1DCOMP = -0.1 #-0.2
 X2DCOMP = 0 #-0.35
 Y2DCOMP = -0.1 #-0.2
@@ -53,8 +55,9 @@ DF_TEMP = pd.DataFrame({'marker':[],
                            'x':[],
                            'y':[],
                            'player':[]})
-MIN_EDGE_GAP = 3
-NUM_DICT = {'size':17,
+MIN_EDGE_GAP = 2
+MAX_MOVE_REACH = 5
+NUM_DICT = {'size':17*G_SCALE,
             'alpha':1,
             'horizontalalignment':'center',
             'verticalalignment':'center',
@@ -138,60 +141,88 @@ COLOR_DICT = {'red':'red',
 D_MARKER = {SOFT_THREAT:'s',
             HARD_THREAT:'s'}
 D_MARKERDICT = {
-                SOFT_THREAT: {'size':15,
-                              'alpha':0.3},
-                HARD_THREAT: {'size':20,
-                              'alpha':0.5}
+                SOFT_THREAT: {'size':15*G_SCALE,
+                              'alpha':0.3,
+                              'horizontalalignment':'center',
+                              'verticalalignment':'center',},
+                HARD_THREAT: {'size':20*G_SCALE,
+                              'alpha':0.5,
+                              'horizontalalignment':'center',
+                              'verticalalignment':'center',}
                 }
 T_MARKER = {SOFT_POWER:'o',
             HARD_POWER:'*'}
 T_MARKERDICT = {
-                SOFT_POWER: {'size':17,
-                       'alpha':0.3},
-                HARD_POWER: {'size':16,
-                       'alpha':0.5,}
+                SOFT_POWER: {'size':17*G_SCALE,
+                             'alpha':0.3,
+                             'horizontalalignment':'center',
+                             'verticalalignment':'center'},
+                HARD_POWER: {'size':16*G_SCALE,
+                             'alpha':0.5,
+                             'horizontalalignment':'center',
+                             'verticalalignment':'center'}
                 }            
 LINEKWARGS = {
               SOFT_POWER: {'alpha':0.3,
                      'linestyle':'dotted',
-                     'linewidth':3},
+                     'linewidth':3*G_SCALE},
               HARD_POWER: {'alpha':0.2,
                      'linestyle':'-',
-                     'linewidth':4},
+                     'linewidth':4*G_SCALE},
               SOFT_THREAT: {'alpha': 0.2,
                      'linestyle':'-',
-                     'linewidth':10},
+                     'linewidth':10*G_SCALE},
               HARD_THREAT: {'alpha': 0.3,
                      'linestyle':'-',
-                     'linewidth':20},
+                     'linewidth':20*G_SCALE},
               }
 SPOT_MARKER  = {'red':'>',
                 'black':'<'}
-SPOT_MARKERDICT = {'size': 10,
-               'alpha': 1}
+SPOT_MARKERDICT = {'size': 10*G_SCALE,
+               'alpha': 1,
+               'horizontalalignment':'center',
+               'verticalalignment':'center'}
 SPT_X_CORR = -0.05
 SPT_Y_CORR = -0.05
 
 HPOT_MARKER  = {'red':'=',
                 'black':'|'}
-HPOT_MARKERDICT = {'size': 10,
-               'alpha': 1}
+HPOT_MARKERDICT = {'size': 10*G_SCALE,
+                   'alpha': 1,
+                   'horizontalalignment':'center',
+                   'verticalalignment':'center'}
 
 ## Evaluator Constants
 
 EVAL_CONSTANTS = namedtuple('Eval_Constants','HT_fins ST_fins HP_trigs SP_trigs SPot_trigs boosts HT_defs ST_defs SP_defs HP_defs SPot_blocks')
-EvKs = EVAL_CONSTANTS(HT_fins= 1000,
-                                ST_fins = 50,
-                                HP_trigs = 1,
-                                SP_trigs = 1.25,
-                                SPot_trigs = 1,
-                                boosts = 0.5,
-                                HT_defs = 100,
-                                ST_defs = 10,
-                                SP_defs = 0.75,
-                                HP_defs = 0.75,
-                                SPot_blocks = 0.01)
+Ev_sum_Ks = EVAL_CONSTANTS(HT_fins= 1000,
+                        ST_fins = 50,
+                        HP_trigs = 1,
+                        SP_trigs = 1.25,
+                        SPot_trigs = 1,
+                        boosts = 0.5,
+                        HT_defs = 100,
+                        ST_defs = 10,
+                        SP_defs = 0.75,
+                        HP_defs = 0.75,
+                        SPot_blocks = 0.01)
+                        # Mult_HP_trigs = 25,
+                        # Mult_SP_trigs = 5,
+                        # EN_mult_SP_trigs = 5,
+                        # EN_mult_HP_trigs = 7.5)
 
+# Ev_funcs = EVAL_CONSTANTS(HT_fins = lambda cnt: cnt*Ev_sum_Ks.HT_fins,
+#                           ST_fins = lambda cnt: cnt*Ev_sum_Ks.ST_fins,
+#                           #HP_SP_trigs =  lambda cnt: cnt*100000,
+#                           SPot_trigs = lambda cnt: cnt*Ev_sum_Ks.SPot_trigs,
+#                           boosts = lambda cnt: cnt*Ev_sum_Ks.boosts,
+#                           HT_defs = lambda cnt: cnt*Ev_sum_Ks.HT_defs,
+#                           ST_defs = lambda cnt: cnt*Ev_sum_Ks.ST_defs,
+#                           SP_defs = lambda cnt: cnt*Ev_sum_Ks.SP_defs,
+#                           HP_defs = lambda cnt: cnt*Ev_sum_Ks.HP_defs,
+#                           SPot_blocks= lambda cnt: cnt*Ev_sum_Ks.SPot_blocks)
+                          
+                          
 ##Globals
 view_index = 0 #index of latest row which is to be displayed.
 overlay_toggle = it.cycle([False, True])
@@ -291,17 +322,17 @@ class Cell():
     def __str__(self):
         return f"""coords      = {self.coords}
     rating      = {self.rating}
-    HT_finish     = {self.HT_finish} * {EvKs.HT_fins}
-    ST_finish     = {self.ST_finish} * {EvKs.ST_fins}
-    HP_triggers   = {self.HP_triggers} * {EvKs.HP_trigs}
-    SP_triggers   = {self.SP_triggers} * {EvKs.SP_trigs}
-    SPot_triggers = {self.SPot_triggers} * {EvKs.SPot_trigs}
-    boosters      = {self.boosters} * {EvKs.boosts}
-    HT_defusers   = {self.HT_defusers} * {EvKs.HT_defs}
-    ST_defusers   = {self.ST_defusers} * {EvKs.ST_defs}
-    SP_defusers   = {self.SP_defusers} * {EvKs.SP_defs}
-    HP_defusers   = {self.HP_defusers} * {EvKs.HP_defs}
-    EN_SPot_triggers={self.EN_SPot_triggers} * {EvKs.SPot_blocks}"""
+    HT_finish     = {self.HT_finish} * {Ev_sum_Ks.HT_fins}
+    ST_finish     = {self.ST_finish} * {Ev_sum_Ks.ST_fins}
+    HP_triggers   = {self.HP_triggers} * {Ev_sum_Ks.HP_trigs}
+    SP_triggers   = {self.SP_triggers} * {Ev_sum_Ks.SP_trigs}
+    SPot_triggers = {self.SPot_triggers} * {Ev_sum_Ks.SPot_trigs}
+    boosters      = {self.boosters} * {Ev_sum_Ks.boosts}
+    HT_defusers   = {self.HT_defusers} * {Ev_sum_Ks.HT_defs}
+    ST_defusers   = {self.ST_defusers} * {Ev_sum_Ks.ST_defs}
+    SP_defusers   = {self.SP_defusers} * {Ev_sum_Ks.SP_defs}
+    HP_defusers   = {self.HP_defusers} * {Ev_sum_Ks.HP_defs}
+    EN_SPot_triggers={self.EN_SPot_triggers} * {Ev_sum_Ks.SPot_blocks}"""
         
 class RepeatMove(Exception):
     pass
@@ -313,19 +344,13 @@ class FIAR():
     '''
     Documentation for FIAR class
     '''
-    def __init__(self, size=5, df=None, first_player = 'black', display='Jupyter', view_index = 'last'):
+    def __init__(self, df=None, first_player = 'black', display='Jupyter', view_index = 'last'):
         '''
         Test documentation for FIAR __init__()
         '''
         assert display in DISPLAYS
         self.display = display
         if type(df)==pd.DataFrame:
-            meg = MIN_EDGE_GAP
-            ## Calculate neccessary edge dimensions
-            self.right_edge = df['x'].max() +meg+0.5
-            self.left_edge = df['x'].min() -meg-0.5
-            self.top_edge = df['y'].max() +meg+0.5
-            self.bottom_edge = df['y'].min() -meg-0.5
             # Calculate next player
             self.next_player = df['player'].iloc[-1]
             self.switch_player()
@@ -335,18 +360,15 @@ class FIAR():
             self.PoTs = []
             
         else: #No dataframe provided, a new game.
-            #Verify size is odd and define edge locations
-            assert size%2==1
-            self.right_edge = size//2+0.5
-            self.left_edge = -size//2+0.5
-            self.top_edge = size//2+0.5
-            self.bottom_edge = -size//2+0.5
-            #Other vars
             assert first_player in PLAYERS
             self.next_player = first_player
             self.next_move = 1
             self.df = DF_TEMP.copy(deep=True)
             self.PoTs = []
+        ## Calculate neccessary edge dimensions
+        self.disp_edges = self.display_bounds()    
+        self.game_edges = self.point_bounds()
+        #print(self.game_edges)
         self.update_matrix()
         self.update_PoTs()
         self.update_PoTs_dict()
@@ -416,7 +438,7 @@ class FIAR():
         #create the game
         global overlay
         global ai_color
-        game = FIAR(size=1)
+        game = FIAR()
         game.draw_board()
         game.render()        
         ai_game = FIAR.input_handler(choices = [(['comp','computer','1p','ai','one player', 'single player', 'single'],True),
@@ -566,45 +588,17 @@ class FIAR():
         if self.loc_taken([x,y]):
             raise RepeatMove(f'The location ({x},{y}) has already been taken')
         # Move is beyond the current board.
-        if x>self.right_edge or x<self.left_edge or y>self.top_edge or y<self.bottom_edge:
+        if not self.move_allowed((x,y)):
             raise OutOfBounds(f"The location ({x},{y}) is beyond the scope of the board.")
         ## Consequences of Move
         #record the move
         self.record_move(self.next_move, x, y, self.next_player)
-        #Draw the move
-        self.draw_number(self.next_move, x, y, self.next_player)
-        # Check if board must be expanded on any side
-        #print(f"Move: {self.next_move}")
-        for direction, edge in [('left', self.left_edge),
-                           ('right', self.right_edge),
-                           ('top', self.top_edge),
-                           ('bottom', self.bottom_edge)]:
-            #if gap too small
-            gap =self.d_to_edge(direction)
-            #print(f"direction: {direction}, gap: {gap}")
-            if gap<MIN_EDGE_GAP:
-                #print(f"Not enough room in direction: {direction}")
-                #print(f"old dist: {edge}")
-                #expand the board
-                additional_spaces = MIN_EDGE_GAP-gap
-                if direction == 'left':
-                    self.left_edge += -additional_spaces
-                elif direction == 'right':
-                    self.right_edge += additional_spaces
-                elif direction == 'top':
-                    self.top_edge += additional_spaces
-                elif direction == 'bottom':
-                    self.bottom_edge += -additional_spaces
-                #print(f"new dist: {edge}")
-                ## Redraw the newly enlarged board with the markers
-                self.draw_board()
-                self.draw_markers()
+        ## Calculate new board dimensions
+        self.disp_edges = self.display_bounds()
+        self.game_edges = self.point_bounds()
         self.update_matrix()
         self.update_PoTs()
         self.update_PoTs_dict()
-        # print("Powers Or Threats:")
-        # for PoT in self.PoTs:
-        #     print(PoT)
         #increment next_move value
         self.next_move +=1
         #switch next_player
@@ -823,6 +817,7 @@ class FIAR():
         '''
         ## Generate cell_dict
         cell_dict = game.cell_dict_gen()
+        # print(f"cell_dict_keys: {cell_dict.keys()}")
         #print(f"original cell_dict: {cell_dict}")
         ## Limit entries in cell dict
             #limited_cell_dict = {key:val for key, val in cell_dict.items() if key in game.playable_points()}
@@ -835,12 +830,12 @@ class FIAR():
         cells = cell_dict.values()
         maxRating = max(cells, key = lambda cell: cell.rating).rating
         chosen_cell = None
-        if maxRating > EvKs.SPot_blocks:
+        if maxRating > Ev_sum_Ks.SPot_blocks:
             max_cells = [cell for cell in cells if cell.rating ==maxRating]
             chosen_cell = random.choice(max_cells)
         elif maxRating ==0:
             chosen_cell = cell_dict[(0,0)]
-        else: #0>x>'EvKs.SPot_blocks
+        else: #0>x>'Ev_sum_Ks.SPot_blocks
             ## find a cell close to previous cell
             print("game_decider: There are no good choices!")
             random_taken = random.choice(game.taken_locs())
@@ -858,18 +853,65 @@ class FIAR():
         return chosen_cell.coords
     
     @staticmethod
+    def eval_HPs_SPs(HP_count, SP_count):
+        '''
+        Evaluates the point rating that the Soft Power count and Hard Power count contribute to the total cell rating. Considers the importance of special cases where there are multiple of some or each.
+
+        Parameters
+        ----------
+        HP_count : int
+            Number of friendly hard power triggers at this cell location
+        SP_count : int
+            Number of friendly soft power triggers at this cell location
+
+        Returns
+        -------
+        HP_rating : float
+            Point value attributed to friendly Hard Power triggers
+        SP_rating : float
+            Point value attributed to friendly Soft Power triggers
+
+        '''
+        if HP_count >1:
+            HP_rating = 25
+            SP_rating = SP_count*Ev_sum_Ks.SP_trigs
+        elif HP_count==1 and SP_count >0:
+            SP_rating = 12.5
+            HP_rating = 12.5
+        elif SP_count >1:
+            HP_rating = HP_count*Ev_sum_Ks.HP_trigs
+            SP_rating = 5
+        else:
+            HP_rating = HP_count*Ev_sum_Ks.HP_trigs
+            SP_rating = SP_count*Ev_sum_Ks.SP_trigs
+        return HP_rating, SP_rating
+            
+    @staticmethod
+    def evaluate_point_piecewise(cell):
+        return (Ev_funcs.HT_fins(cell.HT_finish) + 
+                Ev_funcs.ST_fins(cell.ST_finish) +
+                Ev_funcs.HP_SP_trigs(cell.HP_triggers, cell.SP_triggers) + 
+                Ev_funcs.SPot_trigs(cell.SPot_triggers) + 
+                Ev_funcs.boosts(cell.boosters) + 
+                Ev_funcs.HT_defs(cell.HT_defusers) +
+                Ev_funcs.ST_defs(cell.ST_defusers) +
+                Ev_funcs.SP_defs(cell.SP_defusers) +
+                Ev_funcs.HP_defs(cell.HP_defusers) + 
+                Ev_funcs.SPot_blocks(cell.EN_SPot_triggers))
+    
+    @staticmethod
     def evaluate_point_sum(cell):
-        return (cell.HT_finish*EvKs.HT_fins + 
-                      cell.ST_finish*EvKs.ST_fins + 
-                      cell.HP_triggers*EvKs.HP_trigs + 
-                      cell.SP_triggers*EvKs.SP_trigs +
-                      cell.SPot_triggers*EvKs.SPot_trigs + 
-                      cell.boosters*EvKs.boosts + 
-                      cell.HT_defusers*EvKs.HT_defs + 
-                      cell.ST_defusers*EvKs.ST_defs + 
-                      cell.SP_defusers*EvKs.SP_defs + 
-                      cell.HP_defusers*EvKs.HP_defs +
-                      cell.EN_SPot_triggers*EvKs.SPot_blocks) 
+        return (cell.HT_finish*Ev_sum_Ks.HT_fins + 
+                      cell.ST_finish*Ev_sum_Ks.ST_fins + 
+                      cell.HP_triggers*Ev_sum_Ks.HP_trigs + 
+                      cell.SP_triggers*Ev_sum_Ks.SP_trigs +
+                      cell.SPot_triggers*Ev_sum_Ks.SPot_trigs + 
+                      cell.boosters*Ev_sum_Ks.boosts + 
+                      cell.HT_defusers*Ev_sum_Ks.HT_defs + 
+                      cell.ST_defusers*Ev_sum_Ks.ST_defs + 
+                      cell.SP_defusers*Ev_sum_Ks.SP_defs + 
+                      cell.HP_defusers*Ev_sum_Ks.HP_defs +
+                      cell.EN_SPot_triggers*Ev_sum_Ks.SPot_blocks) 
     
     @staticmethod
     def evaluate_cell_dict(cell_dict, evaluator):
@@ -901,36 +943,36 @@ class FIAR():
             cell_dict[location].rating = rating
         return cell_dict
             
-    def playable_points(self):
-        '''
-        Returns a list of points which the next player's moves are tactically limited to. The default is to return the entire play area, but this is shrunk by enemy threats.
+    # def playable_points(self):
+    #     '''
+    #     Returns a list of points which the next player's moves are tactically limited to. The default is to return the entire play area, but this is shrunk by enemy threats.
         
-        Returns
-        -------
-        points : list of x,y coordinate tuples
-            Move locations that don't guarantee a loss if possible.'
+    #     Returns
+    #     -------
+    #     points : list of x,y coordinate tuples
+    #         Move locations that don't guarantee a loss if possible.'
 
-        '''
-        enemy = self.previous_player
-        # If there are hard threats against the next player
-        if self.PoTs_dict[enemy][HARD_THREAT]:
-            ## The only valid move locations are defusers of hard threats.
-            points = []
-            for HT in self.PoTs_dict[enemy][HARD_THREAT]:
-                points.extend(HT.defuser_locs)
-            return [(int(x),int(y)) for x,y in set(points)]
-        # elif there are soft threats against the next player
-        elif self.PoTs_dict[enemy][SOFT_THREAT]:
-            # The only valid move locations are defusers of soft threats or triggers of hard powers.
-            points = []
-            for ST in self.PoTs_dict[enemy][SOFT_THREAT]:
-                points.extend(ST.defuser_locs)
-            for HP in self.PoTs_dict[self.next_player][HARD_POWER]:
-                points.extend(HP.trigger_locs)
-            return [(int(x),int(y)) for x,y in set(points)]
-        # Else if there are no threats against the current player
-        else:
-            return self.empty_locs()
+    #     '''
+    #     enemy = self.previous_player
+    #     # If there are hard threats against the next player
+    #     if self.PoTs_dict[enemy][HARD_THREAT]:
+    #         ## The only valid move locations are defusers of hard threats.
+    #         points = []
+    #         for HT in self.PoTs_dict[enemy][HARD_THREAT]:
+    #             points.extend(HT.defuser_locs)
+    #         return [(int(x),int(y)) for x,y in set(points)]
+    #     # elif there are soft threats against the next player
+    #     elif self.PoTs_dict[enemy][SOFT_THREAT]:
+    #         # The only valid move locations are defusers of soft threats or triggers of hard powers.
+    #         points = []
+    #         for ST in self.PoTs_dict[enemy][SOFT_THREAT]:
+    #             points.extend(ST.defuser_locs)
+    #         for HP in self.PoTs_dict[self.next_player][HARD_POWER]:
+    #             points.extend(HP.trigger_locs)
+    #         return [(int(x),int(y)) for x,y in set(points)]
+    #     # Else if there are no threats against the current player
+    #     else:
+    #         return self.empty_locs()
                 
     
     def draw_board(self):
@@ -943,17 +985,20 @@ class FIAR():
         None.
 
         '''
-        plt.rcParams['figure.figsize'] = (self.width*FIGSIZE, self.height*FIGSIZE)
+        plt.rcParams['figure.figsize'] = (self.disp_width*FIGSIZE, self.disp_height*FIGSIZE)
+        # print(f"disp_width: {self.disp_width}")
+        # print(f"disp_height: {self.disp_height}")
+        lEdge = self.disp_edges['left']
+        rEdge = self.disp_edges['right']
+        tEdge = self.disp_edges['top']
+        bEdge = self.disp_edges['bottom']
         #Draws the Board
         self.fig, self.ax = plt.subplots()
         # Control size of figure
-        self.ax.set_xlim(self.left_edge, self.right_edge)
-        self.ax.set_ylim(self.bottom_edge, self.top_edge)
-        # set aspect ration to maintain square grid
-        #aspect_ratio = (self.right_edge-self.left_edge-1)/(self.top_edge-self.bottom_edge-1)
-        #self.ax.set_aspect(aspect_ratio)
-        #self.ax.set_aspect(1)
-        #print(f"aspect ratio: {aspect_ratio}")
+        self.ax.set_xlim(lEdge, rEdge)
+        self.ax.set_ylim(bEdge, tEdge)
+        # print(f"xlims: ({lEdge},{rEdge})")
+        # print(f"ylims: ({bEdge},{tEdge})")
         
         ## Hide original Axes and labels
         for side in['top','right','left','bottom']:
@@ -967,51 +1012,60 @@ class FIAR():
                        left=False,
                        right=False)
         ## Drawing the grid lines
-        for x in np.arange(self.left_edge,self.right_edge+1):
+        for x in np.arange(lEdge, rEdge+1):
             # self.ax.axvline(x, color = GRIDCOLOR, linewidth = 1, alpha = 0.5)
+            # print(f"drawing vline @ x={x}")
             self.ax.axvline(x, **GRID_DICT)
-        for y in np.arange(self.bottom_edge,self.top_edge+1):
+        for y in np.arange(bEdge,tEdge+1):
+            # print(f"drawing hline @ y={y}")
             self.ax.axhline(y, **GRID_DICT)
         
         ## Drawing the grid squares
-        for x in np.arange(self.left_edge, self.right_edge):
-            for y in np.arange(self.bottom_edge, self.top_edge):
+        for x in np.arange(lEdge, rEdge):
+            for y in np.arange(bEdge, tEdge):
                 if (np.abs(x+0.5)+np.abs(y+0.5))%2==1:
                     rect = plt.Rectangle((x,y),1,1, **TILE_DICT)
                     self.ax.add_artist(rect)
                     
-        ## Draw the grid markers
+        
         
         # Go through each point with specified spacing that fits within the playing field
-        neg_x_dir = 0
-        while True:
-            if neg_x_dir - GRID_MARKER_SPACING>self.left_edge:
-                neg_x_dir += -GRID_MARKER_SPACING
-            else:
-                break
-        pos_x_dir=0
-        while True:
-            if pos_x_dir + GRID_MARKER_SPACING<self.right_edge:
-                pos_x_dir += GRID_MARKER_SPACING
-            else:
-                break
-        neg_y_dir = 0
-        while True:
-            if neg_y_dir-GRID_MARKER_SPACING>self.bottom_edge:
-                neg_y_dir += -GRID_MARKER_SPACING
-            else:
-                break
-        pos_y_dir = 0
-        while True:
-            if pos_y_dir-GRID_MARKER_SPACING <self.top_edge:
-                pos_y_dir += GRID_MARKER_SPACING
-            else:
-                break
+        # neg_x_dir = 0
+        # while True:
+        #     if neg_x_dir - GRID_MARKER_SPACING>self.left_edge:
+        #         neg_x_dir += -GRID_MARKER_SPACING
+        #     else:
+        #         break
+        # pos_x_dir=0
+        # while True:
+        #     if pos_x_dir + GRID_MARKER_SPACING<self.right_edge:
+        #         pos_x_dir += GRID_MARKER_SPACING
+        #     else:
+        #         break
+        # neg_y_dir = 0
+        # while True:
+        #     if neg_y_dir-GRID_MARKER_SPACING>self.bottom_edge:
+        #         neg_y_dir += -GRID_MARKER_SPACING
+        #     else:
+        #         break
+        # pos_y_dir = 0
+        # while True:
+        #     if pos_y_dir-GRID_MARKER_SPACING <self.top_edge:
+        #         pos_y_dir += GRID_MARKER_SPACING
+        #     else:
+        #         break
+    ## Draw the grid markers denoting distance
+        neg_x_dir = int(abs(self.game_edges['left'])//GRID_MARKER_SPACING)
+        pos_x_dir = int(abs(self.game_edges['right'])//GRID_MARKER_SPACING)
+        pos_y_dir = int(abs(self.game_edges['top'])//GRID_MARKER_SPACING)
+        neg_y_dir = int(abs(self.game_edges['bottom'])//GRID_MARKER_SPACING)
+        # print(f"neg_x_dir: {neg_x_dir}")
+        # print(f"pos_x_dir: {pos_x_dir}")
         xs = list(range(neg_x_dir,pos_x_dir+GRID_MARKER_SPACING,GRID_MARKER_SPACING))
         ys = list(range(neg_y_dir,pos_y_dir+GRID_MARKER_SPACING, GRID_MARKER_SPACING))
         for x in xs:
             for y in ys:
-                self.ax.plot([x-0.05],[y],'+',color='grey')
+                self.ax.plot([x-0.05],[y],GRID_MARKER,**GRID_MARKER_KWARGS)
                 
         # draw it
     def draw_markers(self):
@@ -1023,7 +1077,7 @@ class FIAR():
         None.
 
         '''
-        for rowi in range(self.df.shape[0]):
+        for rowi in range(self.num_moves):
             row = self.df.iloc[rowi,:] 
             marker = row.marker
             x = row.x
@@ -1064,7 +1118,8 @@ class FIAR():
             if PoTtype in [SOFT_POWER,HARD_POWER]:
                 #draw appropriate marker for SP or HP
                 for x,y in PoT.trigger_locs:
-                    self.ax.text(x+X1DCOMP,y+Y1DCOMP,T_MARKER[PoTtype], color=color, fontdict = T_MARKERDICT[PoTtype])
+                    if self.on_figure((x,y)):
+                        self.ax.text(x+X1DCOMP,y+Y1DCOMP,T_MARKER[PoTtype], color=color, fontdict = T_MARKERDICT[PoTtype])
                 #Calculate line end points
                 all_points = list(PoT.trigger_locs)
                 all_points.extend(PoT.marker_locs)
@@ -1083,7 +1138,8 @@ class FIAR():
                 self.ax.plot((x1,x2),(y1,y2),color=color, **LINEKWARGS[PoTtype])
                 ## Draw defuser Locations
                 for x,y in PoT.defuser_locs:
-                    self.ax.text(x+X1DCOMP,y+Y1DCOMP,D_MARKER[PoTtype], color=color, fontdict = D_MARKERDICT[PoTtype])
+                    if self.on_figure((x,y)):
+                        self.ax.text(x+X1DCOMP,y+Y1DCOMP,D_MARKER[PoTtype], color=color, fontdict = D_MARKERDICT[PoTtype])
             elif PoTtype == SPOT_TEMPLATE:
                 if DRAW_SPOTS:
                     # print("draw_PoTs detected a spot")
@@ -1092,11 +1148,13 @@ class FIAR():
                     # print(f"PoT.trigger_locs: {PoT.trigger_locs}")
                     # print(f"list(zip(*PoT.trigger_locs)): {list(zip(*PoT.trigger_locs))}")
                     for x, y in PoT.trigger_locs:
-                        self.ax.text(x+SPT_X_CORR,y+SPT_Y_CORR,SPOT_MARKER[color], color = color, fontdict = SPOT_MARKERDICT)
+                        if self.on_figure((x,y)):
+                            self.ax.text(x+SPT_X_CORR,y+SPT_Y_CORR,SPOT_MARKER[color], color = color, fontdict = SPOT_MARKERDICT)
             elif PoTtype == HPOT_TEMPLATE:
                 if DRAW_HPOTS:
                     for x,y in PoT.booster_locs:
-                        self.ax.text(x+SPT_X_CORR,y+SPT_Y_CORR,HPOT_MARKER[color], color = color, fontdict = HPOT_MARKERDICT)
+                        if self.on_figure((x,y)):
+                            self.ax.text(x+SPT_X_CORR,y+SPT_Y_CORR,HPOT_MARKER[color], color = color, fontdict = HPOT_MARKERDICT)
                 
                 
     
@@ -1195,18 +1253,86 @@ class FIAR():
         for rowi in range(self.df.shape[0]):
             yield self.df.iloc[rowi,:] 
     
-    def d_to_edge(self,edge):
-        '''calculates the minimum distance from every point to a given edge
+    # def d_to_edge(self,edge):
+    #     '''calculates the minimum distance from every point to a given edge
+    #     '''
+    #     ## Redefine variables based on supplied 'edge'
+    #     prop_dict = {'right':('x',np.max,self.right_edge-0.5),
+    #                  'left':('x',np.min,self.left_edge+0.5),
+    #                  'top':('y',np.max,self.top_edge-0.5),
+    #                  'bottom':('y',np.min,self.bottom_edge+0.5)}
+    #     axis, max_or_min, edge_loc = prop_dict[edge]
+    #     #print(axis, max_or_min, edge_loc)
+    #     ## Calculate gap
+    #     return abs(edge_loc -max_or_min(self.df[axis]))
+    
+    def point_bounds(self):
         '''
-        ## Redefine variables based on supplied 'edge'
-        prop_dict = {'right':('x',np.max,self.right_edge-0.5),
-                     'left':('x',np.min,self.left_edge+0.5),
-                     'top':('y',np.max,self.top_edge-0.5),
-                     'bottom':('y',np.min,self.bottom_edge+0.5)}
-        axis, max_or_min, edge_loc = prop_dict[edge]
-        #print(axis, max_or_min, edge_loc)
-        ## Calculate gap
-        return abs(edge_loc -max_or_min(self.df[axis]))
+        Finds the furthest distance that markers extend in all 4 directions, and returns a tuple of their integer values. Gives a minimum of 1 for right and top and maximum of -1 for left and bottom
+
+        Returns
+        -------
+        bounds : dict {str:int}
+            tuple of furthest tile to which markers have reach in (right, top, left, bottom) directions. Accesible with str keys, "right", "top", etc
+
+        '''
+        top = int(max([*self.df['y'],1], default = 1))
+        bottom = int(min([*self.df['y'],-1], default = 1))
+        right = int(max([*self.df['x'],1], default = 1))
+        left = int(min([*self.df['x'],-1], default = 1))
+        return {'right':right,
+                'top':top,
+                'left':left,
+                'bottom':bottom}
+    
+    def display_bounds(self, padding = MIN_EDGE_GAP):
+        '''
+        Calculate edges of displayed area. 
+
+        Parameters
+        ----------
+        padding : int, optional
+            The number of empty tiles which should be displayed to each side of the outermost pieces. The default is MIN_EDGE_GAP.
+
+        Returns
+        -------
+        bounds : dict {str:float}
+            Defines the bounds of the figure to be displayed for the (right, top, left, bottom) sides. Accesible with str keys, "right", "top", etc
+
+        '''
+        point_bounds = self.point_bounds()
+        right = point_bounds['right'] + padding+0.5
+        top = point_bounds['top'] + padding+0.5
+        left = point_bounds['left'] - padding-0.5
+        bottom = point_bounds['bottom'] - padding -0.5
+        return {'right':right,
+                'top':top,
+                'left':left,
+                'bottom':bottom}
+     
+    def on_figure(self, loc):
+        '''
+        Determines whether a given point fits within the currently-displayed window.
+
+        Parameters
+        ----------
+        loc : tuple of numbers
+            An (x,y) coordinate location
+
+        Returns
+        -------
+        on_figure : bool
+            Whether or not the loc is within the display bounds.
+
+        '''
+        x,y = loc
+        on_figure = True
+        if x>self.disp_edges['right'] or x<self.disp_edges['left']:
+            on_figure = False
+        if y>self.disp_edges['top'] or y<self.disp_edges['bottom']:
+            on_figure = False
+        return on_figure
+    
     
     def update_matrix(self):
         '''
@@ -1218,10 +1344,12 @@ class FIAR():
 
         '''
         matrix = np.ones((self.height,self.width), dtype=str)
+        #print(f"width: {self.width}, height: {self.height}")
         matrix[:,:] = EMPTY_CHAR
         for rowi in range(self.df.shape[0]):
             x,y,player = self.df[['x','y','player']].iloc[rowi,:]
             i,j = self.xy_to_ij((x,y))
+            #print(f" x,y: {x,y} to ij: {i,j}")
             matrix[i,j]= PLAYER2MARKER[player]
         self.matrix = matrix
     
@@ -1258,7 +1386,8 @@ class FIAR():
                 line_Hpots = []
                 ## for each type of power and threat
                 for queue6, head_loc, tail_dir in line_queues:
-                    #print(f"queue6: {queue6}, head_loc: {head_loc}, tail_dir: {tail_dir}")
+                    if SHOW_QUEUES:
+                        print(f"queue6: {queue6}, head_loc: {head_loc}, tail_dir: {tail_dir}")
                     ## Context of a single queue.
                     queue5 = list(queue6[1:])
                     ## Scan queue for powers and threats
@@ -1280,11 +1409,11 @@ class FIAR():
                             ## Context of a single queue being compaed to a single pattern
                             if queue == pattern.match_pat:
                                 ## Context of a match having been found.
-                                marker_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_markers]
+                                marker_locs = [(int(head_loc[0]-tail_dir[0]*rel_loc),int( head_loc[1]-tail_dir[1]*rel_loc)) for rel_loc in pattern.rel_markers]
                                 #print(f"marker_locs: {marker_locs}")
-                                trigger_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_triggers]
-                                defuser_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_defusers]
-                                booster_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_boosters]
+                                trigger_locs = [(int(head_loc[0]-tail_dir[0]*rel_loc), int(head_loc[1]-tail_dir[1]*rel_loc)) for rel_loc in pattern.rel_triggers]
+                                defuser_locs = [(int(head_loc[0]-tail_dir[0]*rel_loc), int(head_loc[1]-tail_dir[1]*rel_loc)) for rel_loc in pattern.rel_defusers]
+                                booster_locs = [(int(head_loc[0]-tail_dir[0]*rel_loc), int(head_loc[1]-tail_dir[1]*rel_loc)) for rel_loc in pattern.rel_boosters]
                                 PoTtype = pattern.name[0:2]
                                 #print(f"PoTtype: {PoTtype}")
                                 PoT_Template = {'SP':SOFT_POWER,
@@ -1443,13 +1572,24 @@ class FIAR():
                 line_queues = [] #queues all with the same starting location   
                 starting_loc = np.array(starting_loc)
                 num_steps = self.num_steps(starting_loc,dir_)
-                queue6 =['']*length
+                queue6 =[EMPTY_CHAR]*length
                 for n in range(num_steps):
                     i,j = starting_loc + dir_*n
                     queue6.pop(0)
-                    queue6.append(self.matrix[i,j])
+                    # If indexing into negative position
+                    if i<0 or j<0:
+                        queue6.append(EMPTY_CHAR)
+                    # If indexing into normal, positive position
+                    else:
+                        try:    
+                            queue6.append(self.matrix[i,j])
+                        except IndexError: #In case index is out of bounds.
+                            queue6.append(EMPTY_CHAR)
                     x,y= self.ij_to_xy((i,j))
-                    #print(f"Head_loc (i:{i},j:{j})->(x:{x},y:{y})")
+                    # if (x,y) == (-6,-3):
+                    #     print(f"Head_loc (i:{i},j:{j})->(x:{x},y:{y})") 
+                    #     print(f"starting_loc")
+                    #     print("----------------------------------------")
                     head_loc = (x,y)
                     #print(f"queue6: {queue6}")
                     line_queues.append([list(queue6), head_loc, tail_dir])
@@ -1487,7 +1627,7 @@ class FIAR():
                 step_limits[axis] = loc+1
             elif u_vec == 0:
                 step_limits[axis] = math.inf
-        return min(step_limits.values())
+        return min(step_limits.values())+4
                 
 
         
@@ -1543,7 +1683,7 @@ class FIAR():
 
     def cell_dict_gen(self):
         cell_dict = {}
-        for loc in self.empty_locs():
+        for loc in self.playable_locs():
             cell_dict[loc] = Cell(loc)
         friend = self.next_player
         enemy = self.previous_player
@@ -1613,12 +1753,26 @@ class FIAR():
         points : list of (x,y) int tuples.
             Every point on the board, occupied or otherwise.
 
+        '''    
+        bounds = self.point_bounds()
+        return [(int(x),int(y)) for x in np.arange(bounds['left'],bounds['right']+1) for y in np.arange(bounds['bottom'],bounds['top']+1)]
+    
+    def playable_locs(self, scan_reach = int(4)):
+        '''
+        returns a list of empty points within scan_reach of previously-played points
+
+        Returns
+        -------
+        points: list of (x,y) int tuples.
+            Empty points within scan_reach of previous points
+
         '''
         points = []
-        for x in np.arange(self.left_edge+0.5, self.right_edge+0.5):
-            for y in np.arange(self.bottom_edge+0.5, self.top_edge+0.5):
+        for x in range(self.game_edges['left']-scan_reach, self.game_edges['right']+scan_reach+1):
+            for y in range(self.game_edges['bottom']-scan_reach,self.game_edges['top']+scan_reach+1):
                 points.append((int(x),int(y)))
         return points
+        
     
     def empty_locs(self):
         '''
@@ -1679,6 +1833,26 @@ class FIAR():
         '''
         return loc in self.df[['x','y']].values.tolist()
     
+    def move_allowed(self, coords):
+        '''
+        Checks whether the move in (x,y) cordinates is allowed.
+
+        Parameters
+        ----------
+        coords : int tuple
+            (x,y) location of proposed move
+
+        Returns
+        -------
+        allowed : bool
+            True or False of whether move is acceptable
+
+        '''
+        x,y = coords
+        allowed_move_bound = {key:value+MAX_MOVE_REACH*value/abs(value) for key, value in self.point_bounds().items()}
+        allowed = not bool(x>allowed_move_bound['right'] or x<allowed_move_bound['left'] or y>allowed_move_bound['top'] or y<allowed_move_bound['left'])
+        return allowed
+    
     @staticmethod
     def extreme_points(points):
         '''
@@ -1737,23 +1911,33 @@ class FIAR():
     
     @property
     def width(self):
-        return int(self.right_edge-self.left_edge)
+        return int(self.game_edges['right'] - self.game_edges['left']+1)
     
     @property
     def height(self):
-        return int(self.top_edge-self.bottom_edge)
+        return int(self.game_edges['top'] - self.game_edges['bottom']+1)
+    
+    @property
+    def disp_height(self):
+        return int(self.disp_edges['top']-self.disp_edges['bottom'])
+    
+    @property
+    def disp_width(self):
+        return int(self.disp_edges['right'] - self.disp_edges['left'])
     
     def xy_to_ij(self, xy):
         '''
         Transforms a coordinate pair from the game coordinate system to the matrix coordinate system
         '''
-        return int((self.top_edge-0.5)-xy[1]), int(xy[0]-(self.left_edge+0.5))
+        x,y = xy
+        return int(self.game_edges['top']-y), int(x-self.game_edges['left'])
     
     def ij_to_xy(self, ij):
         '''
         Transforms a coordinate pair from the matrix coordinate system to the game coordinate system.
         '''
-        return ij[1]+(self.left_edge+0.5), (self.top_edge-0.5)-ij[0]
+        i,j = ij
+        return j+self.game_edges['left'], self.game_edges['top']-i
 
     def rot_ij_to_xy(self,ij):
         '''
@@ -1794,378 +1978,15 @@ class FIAR():
         '''
         assert player in PLAYERS
         self.next_player = player
-    # def scan_through_matrix(self):
-    #     ## Vertical Scanning
-    #     #print('Vertical Scanning')
-    #     self.SPs = []
-    #     self.HPs = []
-    #     self.STs = []
-    #     self.HTs = []
-    #     ## CHECKING FOR THREATS
-    #     for j in range(self.width):
-    #         queue5 = ['_']*5
-    #         queue6 = ['_']*6
-    #         for i in range(self.height):
-    #             ##Update both queues
-    #             queue5.pop(0)
-    #             queue5.append(self.matrix[i,j])
-    #             queue6.pop(0)
-    #             queue6.append(self.matrix[i,j])
-    #             # print(queue5)
-    #             self.check_victory(queue5)
-    #             print(queue6)
-    #             print(f"Head Loc: {self.ij_to_xy((i,j))}")
-    #             #self.check_SP(queue6,np.array(self.ij_to_xy((i,j))), (0,1))
-    #     ## Horizontal Scanning
-    #     # print('Horizontal Scanning')
-    #     for i in range(self.height):
-    #         queue5 = ['_']*5
-    #         queue6 = ['_']*6
-    #         for j in range(self.width):
-    #             ##Update both queues
-    #             queue5.pop(0)
-    #             queue5.append(self.matrix[i,j])
-    #             queue6.pop(0)
-    #             queue6.append(self.matrix[i,j])
-    #             # print(queue5)
-    #             self.check_victory(queue5)
-    #             print(queue6)
-    #             print(f"Head Loc: {self.ij_to_xy((i,j))}")
-    #             #self.check_SP(queue6,np.array(self.ij_to_xy((i,j))), (-1,0))     
-    #     ##Negative-slope Diagonal Scanning
-    #     #Generate list of starting points
-    #     # print('Down-Right Scanning')
-    #     left_side_points = zip(list(range(self.height-1,0,-1)),[0]*self.height) 
-    #     top_side_points = zip([0]*self.width,list(range(0,self.width)))
-    #     start_points = list(left_side_points)
-    #     start_points.extend(top_side_points)
-    #     for i_0,j_0 in start_points:
-    #         queue5 = ['_']*5
-    #         queue6 = ['_']*6
-    #         N = min(self.height-i_0, self.width-j_0)
-    #         # print(f'N = {N}')
-    #         for n in range(N):
-    #             ##Update both queues
-    #             i = i_0+n
-    #             j = j_0+n
-    #             queue5.pop(0)
-    #             queue5.append(self.matrix[i, j])
-    #             queue6.pop(0)
-    #             queue6.append(self.matrix[i, j])
-    #             # print(queue5)
-    #             self.check_victory(queue5)
-    #             print(queue6)
-    #             print(f"Head Loc: {self.ij_to_xy((i,j))}")
-    #             #self.check_SP(queue6,np.array(self.ij_to_xy((i,j))), (-1,1))     
-    #     ##Positive-sloped Diagonal Scanning
-    #     #Generate list of starting points
-    #     # print('Down-Left Scanning')
-    #     right_points = zip(list(range(self.height-1,0,-1)),[self.width-1]*self.height)
-    #     top_points = zip([0]*self.width,list(range(self.width-1,-1,-1)))
-    #     start_points = list(right_points) #copy the list
-    #     start_points.extend(top_points)
-    #     for i_0,j_0 in start_points:
-    #         queue5 = ['_']*5
-    #         queue6 = ['_']*6
-    #         N = min(self.height-i_0, j_0+1)
-    #         # print(f'N = {N}')
-    #         for n in range(N):
-    #             i = i_0+n
-    #             j = j_0-n
-    #             queue5.pop(0)
-    #             queue5.append(self.matrix[i, j])
-    #             queue6.pop(0)
-    #             queue6.append(self.matrix[i, j])
-    #             # print(queue5)
-    #             self.check_victory(queue5)
-    #             print(queue6)
-    #             print(f"Head Loc: {self.ij_to_xy((i,j))}")
-    #             #self.check_SP(queue6,np.array(self.ij_to_xy((i,j))), (1,1))  
-                
-                
-    #     ## CHECKING FOR POWERS
-    #     for j in range(self.width):
-    #         queue5 = ['_']*5
-    #         queue6 = ['_']*6
-    #         for i in range(self.height):
-    #             ##Update both queues
-    #             queue5.pop(0)
-    #             queue5.append(self.matrix[i,j])
-    #             queue6.pop(0)
-    #             queue6.append(self.matrix[i,j])
-    #             # print(queue5)
-    #             print(queue6)
-    #             head_loc = np.array(self.ij_to_xy((i,j)))
-    #             print(f"Head Loc: {head_loc}")
-    #             self.check_SP(queue6,head_loc, (0,1))
-    #             self.check_HP(queue5,head_loc, (0,1))   
-    #     ## Horizontal Scanning
-    #     # print('Horizontal Scanning')
-    #     for i in range(self.height):
-    #         queue5 = ['_']*5
-    #         queue6 = ['_']*6
-    #         for j in range(self.width):
-    #             ##Update both queues
-    #             queue5.pop(0)
-    #             queue5.append(self.matrix[i,j])
-    #             queue6.pop(0)
-    #             queue6.append(self.matrix[i,j])
-    #             # print(queue5)
-    #             print(queue6)
-    #             head_loc = np.array(self.ij_to_xy((i,j)))
-    #             print(f"Head Loc: {head_loc}")
-    #             self.check_SP(queue6,head_loc, (-1,0))     
-    #             self.check_HP(queue5,head_loc, (-1,0))     
-    #     ##Negative-slope Diagonal Scanning
-    #     #Generate list of starting points
-    #     # print('Down-Right Scanning')
-    #     left_side_points = zip(list(range(self.height-1,0,-1)),[0]*self.height) 
-    #     top_side_points = zip([0]*self.width,list(range(0,self.width)))
-    #     start_points = list(left_side_points)
-    #     start_points.extend(top_side_points)
-    #     for i_0,j_0 in start_points:
-    #         queue5 = ['_']*5
-    #         queue6 = ['_']*6
-    #         N = min(self.height-i_0, self.width-j_0)
-    #         # print(f'N = {N}')
-    #         for n in range(N):
-    #             ##Update both queues
-    #             i = i_0+n
-    #             j = j_0+n
-    #             queue5.pop(0)
-    #             queue5.append(self.matrix[i, j])
-    #             queue6.pop(0)
-    #             queue6.append(self.matrix[i, j])
-    #             # print(queue5)
-    #             print(queue6)
-    #             head_loc = np.array(self.ij_to_xy((i,j)))
-    #             print(f"Head Loc: {head_loc}")
-    #             self.check_SP(queue6,head_loc, (-1,1)) 
-    #             self.check_HP(queue5,head_loc, (-1,1))
-    #     ##Positive-sloped Diagonal Scanning
-    #     #Generate list of starting points
-    #     # print('Down-Left Scanning')
-    #     right_points = zip(list(range(self.height-1,0,-1)),[self.width-1]*self.height)
-    #     top_points = zip([0]*self.width,list(range(self.width-1,-1,-1)))
-    #     start_points = list(right_points) #copy the list
-    #     start_points.extend(top_points)
-    #     for i_0,j_0 in start_points:
-    #         queue5 = ['_']*5
-    #         queue6 = ['_']*6
-    #         N = min(self.height-i_0, j_0+1)
-    #         # print(f'N = {N}')
-    #         for n in range(N):
-    #             i = i_0+n
-    #             j = j_0-n
-    #             queue5.pop(0)
-    #             queue5.append(self.matrix[i, j])
-    #             queue6.pop(0)
-    #             queue6.append(self.matrix[i, j])
-    #             # print(queue5)
-    #             print(queue6)
-    #             head_loc = np.array(self.ij_to_xy((i,j)))
-    #             print(f"Head Loc: {head_loc}")
-    #             self.check_SP(queue6,head_loc, (1,1))
-    #             self.check_HP(queue5,head_loc, (1,1))
-    #     print(f"All Soft Powers: {self.SPs}")
-    #     print(f"All Hard Powers: {self.HPs}")
-
-    # def check_HP(self,queue, head_loc, tail_dir):
-    #     '''
-        
-
-    #     Parameters
-    #     ----------
-    #     queue : list of str characters
-    #         DESCRIPTION. A list of string characters representing a scanned line in the game matrix.
-
-    #     Returns
-    #     -------
-    #     None.
-
-    #     '''            
-    #     # if queue == ['+','+','+','b','+','+']:
-    #     #     print('Found a simple pattern')
-    #     #For each HP pattern:
-    #     #print(f"HP_Temps: {HP_Temps}")
-    #     for pattern in HP_Temps:
-    #         #print(f'Looking at pattern: {pattern}')
-    #         #print(f"checking for pattern '{pattern.name}'")
-    #         #If the queue matches the pattern:
-    #         if queue == pattern.match_pat:
-    #             print(f"Match found with pattern '{pattern.name}'")
-    #             #Considered a success
-    #             print(f"Head loc: {head_loc}, tail_dir: {tail_dir}, rel_markers: {pattern.rel_markers}")
-    #             marker_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_markers]
-    #             print(f"marker_locs: {marker_locs}")
-    #             trigger_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_triggers]
-    #             print(f"trigger_locs: {trigger_locs}")
-    #             #If a HP with the same marker coords already exists:
-    #             match_none = True #assume that hp is unique among all
-    #             for hp in self.HPs:
-    #                 match=True #Assume the hp in storage and new hp have the same marker_locs
-    #                 for loc in hp.marker_locs:
-    #                     if loc not in marker_locs:
-    #                         #At least one set of marker locations doesn't match those of the sp we are inspecting
-    #                         match = False
-    #                 if match: #if the new old power are one and the same
-    #                     match_none = False
-    #                     print(f"New hp matches old hp with pattern '{hp.name}'")
-    #                     #if the new HP has triggers that the old HP didnt:
-    #                     for trigger_loc in trigger_locs:
-    #                         if trigger_loc not in hp.trigger_locs:
-    #                             #add those triggers to the old HP
-    #                             hp.trigger_locs.append(trigger_loc)
-    #                             print(f"Added trigger location '({trigger_loc})'")
-    #                     #Also add the pattern.name to the list of pattern names.
-    #                     hp.name.append(pattern.name)
-    #             #If a ST or HT with the same markers already exists
-    #             for threat in it.chain(self.STs, self.HTs):
-    #                 match = True #assume that all HP markers belong to the current threat
-    #                 for loc in marker_locs: #marker locations of potential new HP
-    #                     if loc not in threat.marker_locs: #if not found in threat being inspected
-    #                         match=False
-    #                 if match:
-    #                     match_none = False
-    #                     print(f"New hp matches old threat with pattern '{threat.name}'")
-                
-    #             if match_none:
-    #                 #No match, AKA, this is a new hp        
-    #                 #Create new HP with marker and trigger locations
-    #                 hp = PoT_TEMPLATE([pattern.name], pattern.player, marker_locs, trigger_locs)
-    #                 self.HPs.append(hp)
-    #                 print(f"Created new hard power: {hp}")
-        
     
-    
-    # def check_SP(self,queue, head_loc, tail_dir):
-    #     '''
-        
+    @property
+    def num_moves(self):
+        '''
+        The number of moves that have been made in the game..
 
-    #     Parameters
-    #     ----------
-    #     queue : list of str characters
-    #         DESCRIPTION. A list of string characters representing a scanned line in the game matrix.
+        Returns
+        -------
+        int.
 
-    #     Returns
-    #     -------
-    #     None.
-
-    #     '''            
-    #     # if queue == ['+','+','+','b','+','+']:
-    #     #     print('Found a simple pattern')
-    #     #For each SP pattern:
-    #     #print(f"SP_Temps: {SP_Temps}")
-    #     for pattern in SP_Temps:
-    #         #print(f'Looking at pattern: {pattern}')
-    #         #print(f"checking for pattern '{pattern.name}'")
-    #         #If the queue matches the pattern:
-    #         if queue == pattern.match_pat:
-    #             print(f"Match found with pattern '{pattern.name}'")
-    #             #Considered a success
-    #             print(f"Head loc: {head_loc}, tail_dir: {tail_dir}, rel_markers: {pattern.rel_markers}")
-    #             marker_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_markers]
-    #             print(f"marker_locs: {marker_locs}")
-    #             trigger_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_triggers]
-    #             print(f"trigger_locs: {trigger_locs}")
-    #             #If a SP with the same marker coords already exists:
-    #             match_none = True
-    #             for sp in self.SPs:
-    #                 match=True #Assume the sp in storage and new sp have the same marker_locs
-    #                 for loc in sp.marker_locs:
-    #                     if loc not in marker_locs:
-    #                         #At least one set of marker locations doesn't match those of the sp we are inspecting
-    #                         match = False
-    #                 if match: #if the new old power are one and the same
-    #                     match_none = False
-    #                     print(f"New sp matches old sp with pattern '{sp.name}'")
-    #                     #if the new SP has triggers that the old SP didnt:
-    #                     for trigger_loc in trigger_locs:
-    #                         if trigger_loc not in sp.trigger_locs:
-    #                             #add those triggers to the old SP
-    #                             sp.trigger_locs.append(trigger_loc)
-    #                             print(f"Added trigger location '({trigger_loc})'")
-    #                     #Also add the pattern.name to the list of pattern names.
-    #                     sp.name.append(pattern.name)
-    #             #If a ST or HT with the same markers already exists
-    #             for threat in it.chain(self.STs, self.HTs):
-    #                 match = True #assume that all SP markers belong to the current threat
-    #                 for loc in marker_locs: #marker locations of potential new HP
-    #                     if loc not in threat.marker_locs: #if not found in threat being inspected
-    #                         match=False
-    #                 if match:
-    #                     match_none = False
-    #                     print(f"New sp matches old threat with pattern '{threat.name}'")
-    #             if match_none:
-    #                 #No match, AKA, this is a new sp        
-    #                 #Create new SP with marker and trigger locations
-    #                 sp = PoT_TEMPLATE([pattern.name], pattern.player, marker_locs, trigger_locs)
-    #                 self.SPs.append(sp)
-    #                 print(f"Created new soft power: {sp}")
-                    
-    # def check_ST(self,queue, head_loc, tail_dir):
-    #     '''
-        
-
-    #     Parameters
-    #     ----------
-    #     queue : list of str characters
-    #         DESCRIPTION. A list of string characters representing a scanned line in the game matrix.
-
-    #     Returns
-    #     -------
-    #     None.
-
-    #     '''            
-    #     # if queue == ['+','+','+','b','+','+']:
-    #     #     print('Found a simple pattern')
-    #     #For each ST pattern:
-    #     #print(f"ST_Temps: {ST_Temps}")
-    #     for pattern in ST_Temps:
-    #         #print(f'Looking at pattern: {pattern}')
-    #         #print(f"checking for pattern '{pattern.name}'")
-    #         #If the queue matches the pattern:
-    #         if queue == pattern.match_pat:
-    #             print(f"Match found with pattern '{pattern.name}'")
-    #             #Considered a success
-    #             print(f"Head loc: {head_loc}, tail_dir: {tail_dir}, rel_markers: {pattern.rel_markers}")
-    #             marker_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_markers]
-    #             print(f"marker_locs: {marker_locs}")
-    #             trigger_locs = [(head_loc[0]-tail_dir[0]*rel_loc, head_loc[1]-tail_dir[1]*rel_loc) for rel_loc in pattern.rel_triggers]
-    #             print(f"trigger_locs: {trigger_locs}")
-    #             #If a ST with the same marker coords already exists:
-    #             match_none = True
-    #             for st in self.STs:
-    #                 match=True #Assume the st in storage and new st have the same marker_locs
-    #                 for loc in st.marker_locs:
-    #                     if loc not in marker_locs:
-    #                         #At least one set of marker locations doesn't match those of the st we are inspecting
-    #                         match = False
-    #                 if match: #if the new old power are one and the same
-    #                     match_none = False
-    #                     print(f"New st matches old st with pattern '{st.name}'")
-    #                     #if the new ST has triggers that the old ST didnt:
-    #                     for trigger_loc in trigger_locs:
-    #                         if trigger_loc not in st.trigger_locs:
-    #                             #add those triggers to the old SP
-    #                             st.trigger_locs.append(trigger_loc)
-    #                             print(f"Added trigger location '({trigger_loc})'")
-    #                     #Also add the pattern.name to the list of pattern names.
-    #                     st.name.append(pattern.name)
-    #             #If a HT with the same markers already exists
-    #             for threat in self.HTs:
-    #                 match = True #assume that all HT markers belong to the current threat
-    #                 for loc in marker_locs: #marker locations of potential new ST
-    #                     if loc not in threat.marker_locs: #if not found in threat being inspected
-    #                         match=False
-    #                 if match:
-    #                     match_none = False
-    #                     print(f"New st matches old hard threat with pattern '{threat.name}'")
-                
-                
-    #             if match_none:
-    #                 #No match, AKA, this is a new sp        
-    #                 #Create new SP with marker and trigger locations
-    #                 st = PoT_TEMPLATE([pattern.name], pattern.player, marker_locs, trigger_locs)
-    #                 self.STs.append(st)
-    #                 print(f"Created new soft power: {st}")
+        '''
+        return self.df.shape[0]
