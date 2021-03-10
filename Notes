@@ -732,7 +732,7 @@ Wednesday, March 3:
         * _move_ currently determines if a move is valid by comparing it to game.left_edges, etc, which is not something we want.
 
 Thursday, March 4:
-8:20 - 
+8:20 - ?
 
     TODO:
         * [DONE] Fix AI
@@ -759,3 +759,95 @@ Thursday, March 4:
         * Currently, the weights are constants in an implied multiplicative relationship with their corresponding counts. Alternatively, the weights could themselves be complex functions. For example, the function for weighing the importance of SP_triggers could increase with their number. Maybe 1.25 points for 1 and 5 for more than 1. This could potentiall be approximated with some sort of parabolic function, but I am looking for something more piecewise.
         * The use of piecewise functions for weighing counts assumes that there are no interactions between counts, but there are, like in the case of SP_trigs and HP_trigs. If there is one
         * I must store the individual contributions to the total rating of a cell. This makes the most sense to do in the cell. There could be a named tuple for each category consisting of 'count' and 'value'.
+        
+        
+    ON CODE STRUCTURES THAT RATE CELLS:
+        CURRENTLY:
+            * cell features are stored in a Cell object
+            * a total rating for a cell is calculated by a function external to the Cell and modifies the Cell's 'rating' property.
+        ONE POSSIBLE WAY:
+            * cell features are stored in a cell object
+            * each feature in the cell object also has an aggregated value
+            * The cell updates it's own feature values using its own method, then sums them up
+            * A cell grid stores all of the cells and has methods like finding the one with the highest rating, and asking them all to update.
+            * The cell grid accepts a game to create itself.
+            * why not make the cell grid belong to the game? Well, there is the weirdness about the cells not using all the features that we detect, and there is a dependency on whose turn it is.
+        SMART DATA STRUCTURES:
+            * The game currently has several different data structures that are all calculated successively. They all use various game methods to accomplish their tasks, and they have various methods for their use once created. These could all be their own objects with their own methods. This would likely make the game class much cleaner and all the code in general easier to understand.
+            * Candidates for independent classes:
+                * Cell (already implemented)
+                * Cell Array
+                * matrix
+                * PoTs, including Pots dict by type.
+                * viewer
+                * Terminal Interface
+                * game analyzer
+                * game visualizer
+            Where does each function go?:
+                * 
+    REDESIGNING THE INTERFACE TO BE A SEPARATE FINITE STATE MACHINE:
+        * There is not a lot of code in the terminal interface, but it does get reused quite often, and it is silly to keep writing out the same function calls.
+        * The current design essentially has states already, but they are not explciit and likely not tidy.
+        * Because the current design is that of conditional branching, many features have not been implemented in many branches.
+        * STATES:
+            * Main Menu
+            * Two Player game
+            * AI game
+            * saving game
+            * loading game
+            * Viewing
+        * SUBROUTINES:
+    
+    VIEWER CLASS:
+        The purpose of the viewer class is to display previously-played games.
+        ABILITIES:
+            * Step through a game from beginning to ending
+            * analyze a game through the lens of Powers and Threats
+            * analyze a game through the eyes of an AI
+            * display varying levels of detail concerning the overlay
+            * To start playing a game that is being viewed.
+        ATTRIBUTES:
+            * game
+            * current viewing step
+            * 
+        METHODS:
+            * increment viewing step
+            * decrement viewing step
+            * Turn overlay on/off
+            * modify contents of overlay
+            * 
+        POTENTIAL INTERACTION WITH INTERFACE:
+            * Interface asks user questions
+            * User decides to view a game
+            * Interface calls the viewer into action and passes it a game
+            * User clicks around in the viewer
+            * User decides to play the current game
+            * If the viewer is a state of the interface, then it simply switches state.
+    OVERLAP BETWEEN DIFFERENT ACTIVITIES:
+        * When I play, I want to be able to play against a player or ai and have the option to see the power overlay, see ai decisions
+        * When in the viewer, I want to be able to make moves, see ai suggestions.
+        * I think this could be satisfied with a viewer, a game, an analyzer.
+     
+    INTERFACE CLASS:
+        OVERLAP BETWEEN NEW_GAME AND LOAD_GAME:
+            * Both determine whether to play PvP or PvAI
+                * If PvP, which color is ai?
+            * Both determine whether to have the overlay on
+        DIFFERENCES BETWEEN NEW_GAME AND LOAD_GAME:
+            * New game asks who plays first. Load game has an implied next player
+            
+        NEW_GAME ORDER:
+            * pvp or ai
+            * self color
+            * turn order
+        
+        LOAD_GAME ORDER:
+            * pvp or ai
+            * self color
+        
+        WHERE DOES SELECTED INFO GO?
+            * first player info given to FIAR
+            * player_color stored
+            * 
+        WHEN DO YOU USE A STATE AND WHEN DO YOU USE A SUBROUTINE?
+            * By making the player move loop a funciton of the parent class, and redefining undo() for PvPGame and PvAIGame, I can effectively use the same loop for both states. However, it is odd for that loop to not be its own state. But if it was its own state, it could not use those two different undo() methods.

@@ -7,7 +7,9 @@ Created on Sun Feb  7 12:26:54 2021
 """
 
 import matplotlib.pyplot as plt
-plt.ioff()
+plt.ion()
+## TODO
+## Make sure that ion() and ioff() when neccessary.
 import numpy as np
 import pandas as pd
 from IPython.display import display
@@ -50,7 +52,7 @@ Y1DCOMP = -0.1 #-0.2
 X2DCOMP = 0 #-0.35
 Y2DCOMP = -0.1 #-0.2
 PLAYERS = ['black','red']
-DISPLAYS = ['other','Jupyter']
+DISPLAYS = ['regular','Jupyter']
 DF_TEMP = pd.DataFrame({'marker':[],
                            'x':[],
                            'y':[],
@@ -342,9 +344,9 @@ class OutOfBounds(Exception):
 
 class FIAR():
     '''
-    Documentation for FIAR class
+    TIC-TAC-TOE Five In A Row game. Contains all functionality for manually playing a game with the right commands.
     '''
-    def __init__(self, df=None, first_player = 'black', display='Jupyter', view_index = 'last'):
+    def __init__(self, df=None, first_player = 'black', display='regular', view_index = 'last'):
         '''
         Test documentation for FIAR __init__()
         '''
@@ -886,18 +888,18 @@ class FIAR():
             SP_rating = SP_count*Ev_sum_Ks.SP_trigs
         return HP_rating, SP_rating
             
-    @staticmethod
-    def evaluate_point_piecewise(cell):
-        return (Ev_funcs.HT_fins(cell.HT_finish) + 
-                Ev_funcs.ST_fins(cell.ST_finish) +
-                Ev_funcs.HP_SP_trigs(cell.HP_triggers, cell.SP_triggers) + 
-                Ev_funcs.SPot_trigs(cell.SPot_triggers) + 
-                Ev_funcs.boosts(cell.boosters) + 
-                Ev_funcs.HT_defs(cell.HT_defusers) +
-                Ev_funcs.ST_defs(cell.ST_defusers) +
-                Ev_funcs.SP_defs(cell.SP_defusers) +
-                Ev_funcs.HP_defs(cell.HP_defusers) + 
-                Ev_funcs.SPot_blocks(cell.EN_SPot_triggers))
+    # @staticmethod
+    # def evaluate_point_piecewise(cell):
+    #     return (Ev_funcs.HT_fins(cell.HT_finish) + 
+    #             Ev_funcs.ST_fins(cell.ST_finish) +
+    #             Ev_funcs.HP_SP_trigs(cell.HP_triggers, cell.SP_triggers) + 
+    #             Ev_funcs.SPot_trigs(cell.SPot_triggers) + 
+    #             Ev_funcs.boosts(cell.boosters) + 
+    #             Ev_funcs.HT_defs(cell.HT_defusers) +
+    #             Ev_funcs.ST_defs(cell.ST_defusers) +
+    #             Ev_funcs.SP_defs(cell.SP_defusers) +
+    #             Ev_funcs.HP_defs(cell.HP_defusers) + 
+    #             Ev_funcs.SPot_blocks(cell.EN_SPot_triggers))
     
     @staticmethod
     def evaluate_point_sum(cell):
@@ -941,39 +943,7 @@ class FIAR():
             if SHOW_Evals:
                 print(f"{location} rated as: {rating}")
             cell_dict[location].rating = rating
-        return cell_dict
-            
-    # def playable_points(self):
-    #     '''
-    #     Returns a list of points which the next player's moves are tactically limited to. The default is to return the entire play area, but this is shrunk by enemy threats.
-        
-    #     Returns
-    #     -------
-    #     points : list of x,y coordinate tuples
-    #         Move locations that don't guarantee a loss if possible.'
-
-    #     '''
-    #     enemy = self.previous_player
-    #     # If there are hard threats against the next player
-    #     if self.PoTs_dict[enemy][HARD_THREAT]:
-    #         ## The only valid move locations are defusers of hard threats.
-    #         points = []
-    #         for HT in self.PoTs_dict[enemy][HARD_THREAT]:
-    #             points.extend(HT.defuser_locs)
-    #         return [(int(x),int(y)) for x,y in set(points)]
-    #     # elif there are soft threats against the next player
-    #     elif self.PoTs_dict[enemy][SOFT_THREAT]:
-    #         # The only valid move locations are defusers of soft threats or triggers of hard powers.
-    #         points = []
-    #         for ST in self.PoTs_dict[enemy][SOFT_THREAT]:
-    #             points.extend(ST.defuser_locs)
-    #         for HP in self.PoTs_dict[self.next_player][HARD_POWER]:
-    #             points.extend(HP.trigger_locs)
-    #         return [(int(x),int(y)) for x,y in set(points)]
-    #     # Else if there are no threats against the current player
-    #     else:
-    #         return self.empty_locs()
-                
+        return cell_dict                
     
     def draw_board(self):
         '''
@@ -1027,33 +997,6 @@ class FIAR():
                     rect = plt.Rectangle((x,y),1,1, **TILE_DICT)
                     self.ax.add_artist(rect)
                     
-        
-        
-        # Go through each point with specified spacing that fits within the playing field
-        # neg_x_dir = 0
-        # while True:
-        #     if neg_x_dir - GRID_MARKER_SPACING>self.left_edge:
-        #         neg_x_dir += -GRID_MARKER_SPACING
-        #     else:
-        #         break
-        # pos_x_dir=0
-        # while True:
-        #     if pos_x_dir + GRID_MARKER_SPACING<self.right_edge:
-        #         pos_x_dir += GRID_MARKER_SPACING
-        #     else:
-        #         break
-        # neg_y_dir = 0
-        # while True:
-        #     if neg_y_dir-GRID_MARKER_SPACING>self.bottom_edge:
-        #         neg_y_dir += -GRID_MARKER_SPACING
-        #     else:
-        #         break
-        # pos_y_dir = 0
-        # while True:
-        #     if pos_y_dir-GRID_MARKER_SPACING <self.top_edge:
-        #         pos_y_dir += GRID_MARKER_SPACING
-        #     else:
-        #         break
     ## Draw the grid markers denoting distance
         neg_x_dir = int(abs(self.game_edges['left'])//GRID_MARKER_SPACING)
         pos_x_dir = int(abs(self.game_edges['right'])//GRID_MARKER_SPACING)
@@ -1184,6 +1127,7 @@ class FIAR():
         '''
         Refreshes the game. Display method depends on 'display' setting.
         '''
+        print(f"render. self.display = {self.display}")
         if self.display == 'regular':
             self.show()
         elif self.display == 'Jupyter':
@@ -1195,12 +1139,14 @@ class FIAR():
         '''
         Regular method for drawing the figure
         '''
+        print("attempting fig.show()")
         self.fig.show()
         
     def JNshow(self):
         '''
         Jupyter-Notebook-specific display method
         '''
+        print("Attempting to display(self.fig)")
         display(self.fig)
         
     def record_move(self, marker, x, y, player):
