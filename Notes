@@ -736,7 +736,7 @@ Thursday, March 4:
 
     TODO:
         * [DONE] Fix AI
-        *[] not display board unil playing
+        * [] not display board unil playing
         * [] Notice friendly and enemy intersections of power
         
     Thoughts:
@@ -851,3 +851,361 @@ Thursday, March 4:
             * 
         WHEN DO YOU USE A STATE AND WHEN DO YOU USE A SUBROUTINE?
             * By making the player move loop a funciton of the parent class, and redefining undo() for PvPGame and PvAIGame, I can effectively use the same loop for both states. However, it is odd for that loop to not be its own state. But if it was its own state, it could not use those two different undo() methods.
+
+Wednesday, March 10:
+    TODO:
+        * [] not display board until playing
+        
+    TERMINAL INTERFACE:
+        * I have been refering to the terminal interface, when I really meant the IDE debugging interface. A true terminal interface should work straight from a terminal. 
+        ABILITIES:
+            WORK IN SEVERAL ENVIRONMENTS:
+                * in Spyder for debugging purposes
+                * kTinker window.
+            * ask user what environment it is being run in.
+            * Wipe the terminal every move
+                * os.system('clear' or 'close')
+            * Close external figure windows.
+                * plt.close(fig). Sometimes works
+            * turn plt.ion() or plt.ioff() as needed
+                * plt.ioff() delays drawing changes until fig.show() is used.
+                * plt.ion() allows us to interact with an already open figure, including closing it.
+    HOW DO I IMAGINE TKINTER WINDOW BEING USED?
+        METHOD 1:
+            * run run.py in terminal
+            * tkinter window pops up
+            * go through setup questions in tkinter
+            * tkinter accepts move inputs.
+    FUCK TERMINAL INTERFACE:
+        * The terminal interface is clunky at best and always limiting.
+        * The terminal interface already works (for me), and developing it further will be quite limiting.
+        * I will pour my efforts into a fully-GUI application that is much more flexible, robust, and better.
+        
+Monday, March 15:
+9:00 - 10:30 (1:30)
+11:00 - 11:15 (0:15)
+11:50 - 14:30 (2:40)
+    TODO:
+        * Simple Plotting Example using QT Designer
+            * Simple Plotting Example using manual QT
+            * Simple QT Designer example whose python code is compared to previous manual QT
+            * Combine QT designer example with plotting
+        
+    
+    WHAT TO ADD TO FIAR BEFORE BEING DONE:
+        * Graphic Interface
+        * Improved AI
+            * Noticing FICKS
+        * Refactoring of code into presentable pieces.
+        * Summary statistics across lenth of game
+        * 
+    
+    WHAT TO NOT ADD BEFORE BEING DONE:
+        * Proper Terminal Interface
+        
+    GRAPHIC INTERFACE WINDOWS:
+        MAIN MENU:
+            * New Game button
+            * Continue button
+            * Records button
+            * Options button
+        NEW GAME OPTIONS:
+            Selections made before playing new game
+            * PvAI or PvP
+            * Red or Black goes first
+            * If PvAI:
+                * Player and AI colors
+                * ?Show AI rational for moving.
+        CONTINUED GAME OPTIONS:
+            Selections made before continuing a game
+            * PvAI or PvP
+            * If PvAI:
+                * Player color
+        SAVED GAMES TO CONTINUE:
+            * Several slots that are all displayed simultaneously
+                * Includes Autosave
+        Options:
+            * Allow basic overlay to be toggled?
+            * Allow heat map to be toggled?
+            * Highlight the cell whose numbers have been entered into the x,y coords box(es)?
+        RECORDS (CANCELED):
+            * Scrollable frame with all record games
+            * Back button
+            * View Selected Game button
+        VIEWER:
+            * Large frame with current stage of game
+            * Plot of powers vs time above game, with shading used to indicate where we are along in the process
+            * Toggle for overlay
+            * Left and Right arrows to allow stepping forward or backwards
+            * Back button to main menu
+            * Play From This Point button
+        PLAY:
+            * Large frame with current stage of game
+            * Prompt indicating next player to move
+            * Toggle for overlay (if allowed)
+            * Zone to input X and Y coordinates of next move
+            * Commit Move button.
+            * Save
+            * undo
+            * main menu
+        
+Tuesday, March 16:
+TODO:
+    *[DONE] Mock Up of First-Pass Menus
+    * [DONE] Program transitions between menus
+    ** [] Finish gutting FIAR.py. Last left off on point_bounds section.
+    * [DONE] program game-play
+    
+Mackenzie Feedback:
+    * Actually use arrow keys in viewer
+    * Back button in Saved game window
+    * Show highlighted block in game
+    
+Wednesday, March 17:
+    TODO:
+        * [DONE] Get one window to transition.
+        * [] Program all transitions
+    
+    ON WINDOWS AND STATES:
+        * The qt ui changes windows by changing an index, though this simply modifies the window being displayed. No real change occur with the program
+        * The transition from one window to another may eliminate the need for a state-based user-interface as I had envisioned it previously with subclasses. Because Only certain buttons are available, the user is necessarily placed into a different state, with only certain buttons available.
+        * It seems hard to predict what the best way to organize things is right now, so I will just do my best to fail forward.
+        ** A state-based approach soudns reasonable for reusing the savedgames screen for both saving and loading. In one state, pressing the save locations has one effect; in another state, there is another effect, but the screen is the same. Maybe displayed text is a bit different too. The state change could
+    
+    ORDER OF OPERATIONS IN NEWGAME:
+        OPTION 1:
+            * Click Newgame button
+            * Dialogue opens up
+            * Dialogue box filled out
+            * click "Play"
+            * Dialogue triggers MainWindow transition
+            * Dialogue sends data to MainWindow and closes.
+        OPTION 2:
+            * Click NewGame buttin
+            * Dialogue opens up
+            * click "Play"
+            * dialogue saves relevant information internally
+            * dilaogue triggers pull of information by MainWindow
+            * Main window pulls relevant information, transitions its state, and uses the information.
+            * dialogue kills itself
+    PvP New Game actions:
+    I must now separate the game from the visualization and other aspects
+        * Update whose turn is next
+        * display the board in the figure window.
+        
+Thursday, March 18:
+    TODO:
+        * 
+    ON PLOTTING:
+        * THe FIAR_Plot.py module will certainly be able to display the game as needed to play it
+        * The FIAR_Plot.py module might also be able to display the overlay. Displaying the overlay, however, requires knowing where powers and such are, which is outside the scope of this module.
+        * The FIAR_Plot.py module will have functions for plotting powers and such, but they will require locations as inputs from the FIAR_Analysis module.
+Friday, March 19:
+    TODO:
+        ** [DONE] Implement state framework across the board with all states, initialization()s, exit_cleanup()s, to_STATE()s, etc.
+        * [Done]Add error handling of improper moves
+        * potentially simplify the way in which plotting is done. self.plot.canvas.ax.text() is a bit much.
+        * [IGNORE] When saving, rename Main Menu button to Cancel?
+        * [DONE] WHen saving, perform the same clean-up as when going to main menu, so that we don't have two figure displaying.
+        * [FWD] Create new Dialogue window for resuming a game
+            * Next player already decided, but if it is an AI game, then player color must still be chosen.
+        
+    FIAR_Saves:
+        PURPOSE:
+            * To handle the saving and loading of games on the saved games window.
+        FEATURES:
+            * Limits the number of saves
+            * Associates each save with a retrieval function
+            * Allows for the overwriting of saves
+            * Allows for the loading of saves
+            * Completed games get removed from the savelist if they ever were there.
+        METHODS
+    
+    SAVING A GAME:
+        OPTION 1:
+            1. Click "Save"
+            2. Get taken to Saves screen in Saving Mode
+            3. Saves screen shows all the saves, some of which are labeled as taken and others are not
+            4. User clicks on one of the save slots. Clicking on autosave does nothing.
+            5. The current game is saved in the appropriate slot
+            6. The current game is forgotten
+            7. The screen transitions to the mainmenu
+            
+    STATE TRANSITIONS:
+        State transitions follow a pattern:
+            * The current state is triggered by some event, such as a button-press to call its to_STATE method.
+            * All to_STATE methods have two function calls:
+                * self.newstate(STATE)
+                * self.initialization()
+            * Some to_STATE methods precede those two methods with a call to exit_cleanup()
+            * all initializations()s start with a set_frame(FRAME) call and reset the button associations
+
+Monday, March 22:
+    TODO:
+        * [DONE] Make AI move if it is the first player during initialization.
+        * [DONE] save ai color somewhere
+        * [DONE] Make window of fixed size
+        * [DONE] Hook up save and load buttons
+        * [DONE]Select first game in viewer by default
+        * [DONE] Cleanup viewer state of FIAR_GUI.py
+        * [DONE] Create new Dialogue window for resuming a game
+            * Next player already decided, but if it is an AI game, then player color must still be chosen.
+        * [IGNORE] Hook up the autosave to trigger for normal exits. Potentially just "main menu"
+        * [MEH] Consider rebooting the entire game when returning to the Main Menu. This can help prevent the accumulation of weird state data from all the different combinations of state transitions that are possible. Since eventually, one is very likely to go through the main menu, that is a good place to wipe the slate clean, and potentially cover up any irregularities that add-up; this may be bad practice.
+        * [DONE] Get SaveName dialogue box to properly trigger and lead to saving the game.
+        * [DONE] Update dialogues to use provided callback functions instead of hard-coded ones.
+        * [DONE] modify transition to always use exit_cleanup. When info needs to be saved, copy it before the cleanup and pass it to the new state's intialization method.
+        * [MEH] Consider adding "Suggestion" button in PvP and PvAI modes
+        
+    BUGS:
+        * [DONE]first player indicator not updated for PvAI mode
+        * [DONE] game and analysis not updated between player move and AI move
+        * [DONE] negative integers not allowed in spinboxes for move selection
+        * [DONE] Numbers are way too big on the figure, and they appear to stay same size while grid shrinks.
+        * [] the spacing indicators are not being drawn on the entire board, just a section of it.
+        * [DONE] prints "Performing Loading Initialization" too many times. It is very suspicious.
+        * [DONE] "PvP Mode" is still displayed when in PvAI mode
+        
+    USER AND AI MOVES:
+        * In the two-player version, any invalid moves simply have no effect.
+        * In the one-player version, user moves are usually followed by AI moves. However, if the user move is invalid, then no AI move should be made. The AI code should execute iff the user move executes wtihout issue. 
+    
+    Plotting Aspect Ratio Issue:
+        * I want the plot to always occupy a square area in the application
+        * I want the plot to possibly be rectangular when the layout of the pieces would suggest it
+        * I don't want the plot to be stretched in any direction, because that would deform the square grid.
+        * I COULD:
+            * have rectangular plots be shrunk fit inside the square plotting area without being deformed
+            * I could have the plots display extra rows of squares just to maintain a square board. Initially, this seems like it will clutter the board with unneeded squares, but either that space shows blank squares or it shows whitespace.
+        
+    Responsibilities of ResumeGame dialogue window:
+        * A game has already been chosen in whatever MainWindow frame summoned the dialogue window
+        * The question is of how the game should be played
+        * In the same way that the NewGame process 
+        
+    HOW WILL ResumeGame Dialogue be used?:
+        * In the loading menu, after a save has been selected.
+        * In the viewing menu, after "Play Current" has been selected.
+        
+    What does saving look like?:
+        * The user was in the PvP or PvAI Play substates and clicked Save.
+        * The user is asked for a savename by dialogue box
+        * A state transition is performed to the Saving state, which includes switching to the SavedGame frame.
+        * The user clicks on one of the three save locations
+        * FIAR_Saves.save_game() is used to save the current game.
+        * The user is taken to the Main Menu screen
+        
+    How to get a savename:
+        Option 1:
+            * A dialogue pops up with a single text input box and two buttons, "save" and "cancel".
+            * If "save" is clicked and there is a valid name, then the dialogue calls a function to finish the saving process.
+        Option 2:
+            * The save slot itself has a text box appear on top of it or as it, and the user types the name into that.
+        Option 3:
+            * The name is obtained before the save slot is chosen.
+            * Clicking "save" while in the Play frame causes a text box to appear on the frame. This would create another substate.
+ 
+Wednesday, March 24:
+    TODO:
+        * [DONE] Add recognition of game end
+            * [DONE] Add prompt for whether to view game in viewer.
+        * [] Improve ease of making moves
+            * [] Cursor reset to x-coord spinbox
+            * [] Enter recognized in either spinbox as indicating a desire to play the move
+            * [] Being able to tab over to and hit enter over any button.
+        * [DONE?] Hook up the autosave button for loading.
+        * [DONE?] Cause games to autosave
+        * [DONE] Unlink buttons upon exiting states
+        * [] Clean up the layout of buttons by a combination of fixed sizes and expanding widgets.
+        * [] Clean up Viewer class
+        * [] Make viewer show overlay for current-ly viewed game.
+        
+    BUGS:
+        * [DONE] Games get saved as csvs but do not persist in Saved games menu after game restart.
+        * [DONE] Trying to a load an empty save slot causes an error.
+        * [] When resuming a game from the SavedGames menu, one cannot see the board when choosing ai_color.
+        * [DONE] Sometimes the SaveName dialogue doesn't close and then tehe save name is doubled in length.("SaveSave")
+        * [DONE] Overwritten saves do not get their files deleted
+        * [DONE] Can click undo on a game with no moves, switching the play order and causing the marker to be of a negative number.
+        * [DONE] Trying to load an empty game crashes the applciation
+        * [DONE] Resuming the autosave after a completed game, causes an issue with simulatenously askingto save the "newly completed" game
+        * [DONE] A game with one move played in which the AI started can be "undone", and it switches the starting order of the game.
+        * [] When the inspected game is switched within the viewer, the state of the overlay toggle is not respected
+        * [] The sizes of overlay elements is way too big. There may be a need for scaling them with baord size just like the markers. 
+        * [] Create a data structure which tracks powers and threats for each player.
+    
+    How do games get resumed?
+        * MainMenu>Continue>
+        * Viewer>Play_Current
+    
+    How does continuing from Main Menu look lke?
+        * Click continue from main menu
+            * State transition to (Loading)
+        * A save is selected from the options
+        * A dialogue window pops up and asks for details about how the game should be played.
+        * PvP or PvAI transition occurs
+        
+    When could autosaving occur?
+        * After making a move
+        * Upon leaving the PvP or PvAI states, though that seems inferior to after moving.
+        
+    Victory Involves:
+        * Checking for victory after each change
+        * IF Victory:
+            * Announce Victory and congratulate the victor
+            * open a dialogue window to ask the user for a save name
+            * If a save name is provided, 
+                * then a callback is provided the save name.
+                * The callback saves the game
+                * Another menu pops up asking whether they would like to view the game in the Viewer
+                * The response is provided to a callback that handles the exit from the play screen and potentially the transition to the Viewer.
+            * Elif there is no savename:
+                * The another menu still pops up and asks if the user would like to view the game
+                * The response is provided to a callback that handles the exit from the play screen and potentially the transition to the Viewer.
+                
+    Opening the current game in Viewer:
+        * The current game might not have been saved in records. If not, then the viewer must be passed the game.
+        * If the current game has been recorded, then it should be selected from the list. The name is required to select it from te list.
+        
+    What does programming the OVerlay look like?
+        * When the "Overlay Toggle" is checked or unchecked:
+            * The flag is appropriately set and  refresh of the display performed
+            * If the flag is positive, then a list of PoTs is passed from FIAR_Analysis to FIAR_Plot.
+            
+    Game Tracker:
+        HOW TO STORE DATA?:
+            * Maybe two dataframes with time rows and power types for columns?
+                * Could combine tables by:
+                    * Having an extra column for 'player'
+                    * multiindex the rows
+            * a list of dictionaries?
+        HOW TO GENERATE DATA?
+            * Iterate through games
+                * feed each game into an analyzer
+                * Extract a PoTs count from each analyzer.
+                * Morph PoTs count into a dataframe row
+                * append df row to the table.
+        PROBLEM OF OVERANALYSIS:
+            * It would be programmatically simple to (every time a move is made) to feed the current game into the iterating analyzer and get the full dataframe for each step. However, this would involve recalculating known quantities every single time a move is made; every previous power count would not change.
+            * It would be computationally preferred to, when a new move is made, to add the new power counts to the existing dataframe.
+            * Regardless of whether an optimization is performed as described above, the ability to generate a full history from a single game is still neccessary, and that will be used until no longer convenient.
+        
+        THOUGHTS:
+            * The Viewer and analysis are getting more and more complex.
+            * I am butting up against similar strcutural limitations of these two sections as before
+            * I hope to expand the capability of both before I am done
+            * A large rework of the viewer and the Analyzer, and the plotter will be neccessary.
+            * At the very least, wtih current capability, my code must be made more comprehensible.
+            
+Thursday, March 25:
+    TODO
+        * [] Fix visualization of powers and threats
+            * [] Make sure that toggle overlay's state is always considered when changing viewing index or changing the game.
+            * [] markers scale with plot size
+        * [] Create several compatible game_history visualizations and play with them.
+        * [DONE] Change plotting style to be more step-wise
+        * [] FIX MY BROKEN-ASS ENVIRONMENT
+        
+        
+    STEPPIFYING A DATAFRAME:
+        * Stepping through the old dataframe, a new one can be created by modifying and appending.
