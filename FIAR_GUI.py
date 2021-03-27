@@ -10,6 +10,7 @@ Created on Mon Mar 15 14:13:57 2021
 
 from PyQt5.uic import loadUiType
 from PyQt5.QtCore import QEvent, Qt
+from PyQt5.QtGui import QMovie, QPainter, QPixmap
 
 from functools import partial
 import copy
@@ -18,8 +19,10 @@ import FIAR
 from FIAR import OutOfBounds, RepeatMove
 from FIAR_Plot import FIAR_Plot
 from FIAR_Saves import FIAR_Saves, RECORDS_FOLDER, EmptySaveSlot
+from FIAR_Sounds import FIAR_Sounds
 import FIAR_Analyzer
 
+IMAGE_FOLDER = 'images/'
 
 ## DEBUGGING SETTINGS
 PRINT_STATE_TRANS = False
@@ -35,6 +38,8 @@ Ui_NewGame, QNewGame = loadUiType("NewGame.ui")
 Ui_ResumeGame, QResumeGame = loadUiType("ResumeGame.ui")	
 Ui_SaveName, QSaveName = loadUiType("SaveName.ui")
 Ui_ViewerQuery, QViewerQuery = loadUiType("ViewerQuery.ui")
+# COde for compiling GUI resources
+# pyrcc5 QtResources.qrc -o QtResources_rc.py
 
 class FIAR_Main_Window(QMainWindow, Ui_MainWindow):
     def __init__(self):
@@ -47,6 +52,14 @@ class FIAR_Main_Window(QMainWindow, Ui_MainWindow):
         ## Other classes
         self.saves = FIAR_Saves()
         self.analysis = FIAR_Analyzer.FIAR_Analyzer()
+        self.sounds= FIAR_Sounds()
+        # GIF SETUP
+        self.movie = QMovie(IMAGE_FOLDER+"FIAR-Home-Screen_BG.gif")
+        self.movie.frameChanged.connect(self.repaint)
+        self.movie.start()
+        # self.centralwidget.setStyleSheet('QGraphicsView {background-color: rgb(0,0,0);}')
+        #Play intro sound
+        self.sounds.start()
         # Setup first window
         self.new_state(MainMenu)
         self.initialization()
@@ -64,21 +77,27 @@ class FIAR_Main_Window(QMainWindow, Ui_MainWindow):
     #     # Forces implementation in child classes    
         
     def to_MainMenu(self):
+        self.sounds.click()
         self.state_trans(MainMenu)
     
     def to_PvP(self):
+        self.sounds.click()
         self.state_trans(PvP)
 
     def to_PvAI(self):
+        self.sounds.click()
         self.state_trans(PvAI)
     
     def to_Saving(self):
+        self.sounds.click()
         self.state_trans(Saving)
         
     def to_Loading(self):
+        self.sounds.click()
         self.state_trans(Loading)
         
     def to_Viewing(self):
+        self.sounds.click()
         self.state_trans(Viewing)   
         
     def new_state(self, newstate):
@@ -110,32 +129,48 @@ class FIAR_Main_Window(QMainWindow, Ui_MainWindow):
         self.new_state(newstate)
         self.initialization()
         
+    def paintEvent(self, event):
+        currentFrame = self.movie.currentPixmap()
+        frameRect = currentFrame.rect()
+        frameRect.moveCenter(self.rect().center())
+        # if frameRect.intersects(event.rect()):
+        painter = QPainter(self)
+        painter.drawPixmap(frameRect.left(), frameRect.top(), currentFrame)    
+    
+        
 class MainMenu(FIAR_Main_Window):
     def initialization(self):
         self.set_frame(MAINMENU)
+        print('movie init')
+        # self.show()
+        
         ## Link Main Menu Buttons
         self.Continue.clicked.connect(self.to_Loading)
         self.NewGame.clicked.connect(self.new_game)
         self.Records.clicked.connect(self.to_Viewing)
     
     def exit_cleanup(self):
+        # self.movie.stop()
         try:
             self.Continue.clicked.disconnect()
             self.NewGame.clicked.disconnect()
             self.Records.clicked.disconnect()
-        except TypeError:
-            pass
-        
+            # self.movie.frameChanged.disconnect()
+        except TypeError as ex:
+            print(ex)
+    
     def new_game(self):
         '''
         Responds to press of NewGame button on the Main Menu
         '''
         # print('Clicked main_newgame')
+        self.sounds.click()
         newgame_window = NewGame_Dialogue(callback=self.to_Play)
         newgame_window.exec_()
         # If dialogue interaction is successful, then MainMenu.receieve_newgame_inputs() gets called by dialogue.
  
     def to_Play(self,inputs):
+        self.sounds.click()
         game = FIAR.FIAR(first_player = inputs['first_player'])
         self.exit_cleanup()
         if inputs['mode'] == 'PvP':
@@ -185,7 +220,7 @@ class Play(FIAR_Main_Window):
         self.ModeLabel.setText(mode + " mode")
         
     def newmpl(self):
-        self.plot = FIAR_Plot(self.game)
+        self.plot = FIAR_Plot(self.game, self.click_react)
         self.Play_mpl_layout.addWidget(self.plot.canvas)
         self.plot.canvas.draw()
 
@@ -195,12 +230,31 @@ class Play(FIAR_Main_Window):
         # print("Closing Play canvas")
         self.plot.canvas.close()
     
+    def click_react(self, from_left, from_top):
+        '''Reacts to a click on the game board in order to process the cursor position and make a move'''
+        print(f"received normalized position of click, from left: {from_left}, from_top: {from_top}")
+        ## Calculate distance from left and top in cells
+        cell_width = self.plot.disp_width #width of plot in cells
+        cell_height = self.plot.disp_height #height of plot in cells
+        c_left = from_left*cell_width #distance in cells from left edge
+        c_top = from_top*cell_height #distance in cells from top edge
+        print(f"Cell distance from...top: {c_top}, left: {c_left}")
+        print(f"left_edge: {self.plot.disp_edges['left']}, top_edge: {self.plot.disp_edges['top']}")
+        x = c_left+self.plot.disp_edges['left'] # decimal x distance in cells from x,y origin
+        y = self.plot.disp_edges['top']-c_top # decimal y distance in cells from x,y origin
+        x_cell = round(x)
+        y_cell = round(y)
+        print(f"calculated final move of x: {x_cell}, y: {y_cell}")
+        ## Make a move with these new_found move coordinates.
+        self.auto_move(x_cell,y_cell)
+    
     def refresh_all(self):
         self.refresh_mpl()
         self.update_np_label()
         
     def check_victory(self):
         if self.analysis.victory:
+            self.sounds.victory()
             self.Play_TopLabel.setText(f"{self.analysis.victory.capitalize()} is Victorious!")
             # Get name for record and save it.
             savename_window = SaveName_Dialogue(callback= self.record_game,
@@ -215,6 +269,7 @@ class Play(FIAR_Main_Window):
             
         
     def save(self):
+        self.sounds.click()
         ## Pop up saveName dialogue
         savename_window = SaveName_Dialogue(callback= self.to_Saving,
                                             namevalid= self.saves.valid_save_name)
@@ -256,6 +311,7 @@ class PvP(Play):
         super(PvP, self).exit_cleanup()  
         
     def undo(self):
+        self.sounds.click()
         # Modify game
         try:
             self.game.undo()
@@ -265,6 +321,7 @@ class PvP(Play):
         self.refresh_all()
 
     def move(self):
+        self.sounds.move()
         try:
             # pull data from fields
             x = self.Play_X_Val.value()
@@ -282,6 +339,21 @@ class PvP(Play):
         self.analysis.new_game(self.game)
         self.check_victory()
         
+    def auto_move(self,x,y):
+        self.sounds.move()
+        try:
+            # feed data to game
+            self.game.move(x,y)
+            self.saves.autosave(self.game)
+        except OutOfBounds as ex:
+            pass
+            print(ex.message)
+        except RepeatMove as ex:
+            pass
+            print(ex.message)
+        self.refresh_all()
+        self.analysis.new_game(self.game)
+        self.check_victory()
         
 class PvAI(Play):
     def initialization(self, game, ai_player):
@@ -301,6 +373,7 @@ class PvAI(Play):
         self.ai_player = None
     
     def move(self):
+        self.sounds.move()
         # Perform User move first
         try:
             # pull data from fields
@@ -325,11 +398,35 @@ class PvAI(Play):
             self.analysis.new_game(self.game)
             self.check_victory()
     
+    def auto_move(self,x,y):
+        self.sounds.move()
+        # Perform User move first
+        try:
+            # feed data to game
+            self.game.move(x,y)
+        except OutOfBounds as ex:
+            pass
+            print(ex.message)
+        except RepeatMove as ex:
+            pass
+            print(ex.message)
+        else: #User move went properly
+            ## AI Makes a move
+            self.analysis.new_game(self.game)
+            self.ai_move()
+            self.saves.autosave(self.game)
+        finally:
+            self.refresh_all() 
+            ## Check for victory
+            self.analysis.new_game(self.game)
+            self.check_victory()
+    
     def ai_move(self):
             ai_coords = self.analysis.game_decider(self.game, FIAR_Analyzer.FIAR_Analyzer.evaluate_point_sum)
             self.game.move(*ai_coords)
             
     def undo(self):
+        self.sounds.click()
         # Modify game. Undo twice because must revert AI and player turn
         game = copy.deepcopy(self.game)
         try:
@@ -383,6 +480,7 @@ class Saving(Saves):
         self.savename = None
         
     def save_game(self, listing_id):
+        self.sounds.click()
         # Save the current game
         self.saves.save_game(game=self.game,
                              savename=self.savename,
@@ -409,6 +507,7 @@ class Loading(Saves):
         self.Save3.clicked.connect(partial(self.load_game, listing_id = 3))
         
     def load_game(self, listing_id):
+        self.sounds.click()
         try:
             self.game = self.saves.load_game(listing_id)
         except EmptySaveSlot as ex:
@@ -493,6 +592,7 @@ class Viewing(FIAR_Main_Window):
         self.mplfigs.clear()
         
     def back(self):
+        self.sounds.click()
         ## move backwards in time on the current game if possible
         if self.view_index>1:
             self.view_index-=1
@@ -504,6 +604,7 @@ class Viewing(FIAR_Main_Window):
             print("We cannot go any further back in this game.")
     
     def forward(self):
+        self.sounds.click()
         if self.view_index< self.game.df.shape[0]:
                 self.view_index +=1
                 ## move forward in time on the current game if possible
@@ -515,6 +616,7 @@ class Viewing(FIAR_Main_Window):
             print("This is the latest view of the game.")
 
     def resume_game(self):
+        self.sounds.click()
         current_df = self.game.df.iloc[:self.view_index,:]
         self.game = FIAR.FIAR(df=current_df)
         resumegame_window = ResumeGame_Dialogue(callback = self.to_Play)
@@ -542,6 +644,7 @@ class Viewing(FIAR_Main_Window):
         self.game = FIAR.FIAR.from_csv(name, folder = RECORDS_FOLDER)
         
     def change_game(self, item):
+        self.sounds.click()
         self.rmmpl()
         self.new_game(item)
         self.view_index = self.game.df.shape[0]
@@ -560,6 +663,7 @@ class Viewing(FIAR_Main_Window):
         self.plot.canvas.close()    
     
     def overlay_toggle(self):
+        self.sounds.click()
         self.rmmpl()
         viewed_df = self.game.df.iloc[:self.view_index,:]
         viewed_game = FIAR.FIAR(df= viewed_df)
@@ -619,6 +723,7 @@ class NewGame_Dialogue(QNewGame, Ui_NewGame):
         self.setupUi(self)
         self.update_state()
         self.NewGame_Play.clicked.connect(self.newgame_play)
+        self.sounds = FIAR_Sounds()
     
     def update_state(self):
         mode = self.ModeSelector.currentText()
@@ -632,6 +737,7 @@ class NewGame_Dialogue(QNewGame, Ui_NewGame):
     
     def newgame_play(self):
         '''Responds to the click of the Play button on the New Game Dialogue'''
+        self.sounds.click()
         # print("Clicked newgame_play")
         self.update_state()
         self.save_data()
@@ -666,6 +772,7 @@ class ResumeGame_Dialogue(QResumeGame, Ui_ResumeGame):
         self.setupUi(self)
         self.update_state()
         self.ResumeGame_Play.clicked.connect(self.resumegame_play)
+        self.sounds = FIAR_Sounds()
     
     def update_state(self):
         mode = self.ModeSelector.currentText()
@@ -679,6 +786,7 @@ class ResumeGame_Dialogue(QResumeGame, Ui_ResumeGame):
     
     def resumegame_play(self):
         '''Responds to the click of the Play button on the Resume Game Dialogue'''
+        self.sounds.click()
         # print("Clicked resumegame_play")
         self.update_state()
         self.save_data()
@@ -707,6 +815,7 @@ class SaveName_Dialogue(QSaveName, Ui_SaveName):
         self.callback = callback
         self.namevalid = namevalid
         self.setupUi(self)
+        self.sounds = FIAR_Sounds()
         # self.update_state()
         self.SaveName_Save.clicked.connect(self.save)
         self.SaveName_Name.installEventFilter(self)
@@ -714,6 +823,7 @@ class SaveName_Dialogue(QSaveName, Ui_SaveName):
     
     def save(self):
         '''Responds to the click of the Save button on the SaveName Dialogue'''
+        self.sounds.click()
         # print("Clicked SaveName_Save button")
         # print(f"Entered text: {self.SaveName_Name.toPlainText()}")
         if self.namevalid(self.SaveName_Name.toPlainText()):
@@ -743,15 +853,18 @@ class ViewerQuery_Dialogue(QViewerQuery, Ui_ViewerQuery):
         self.callback_yes = callback_yes
         self.callback_no = callback_no
         self.setupUi(self)
+        self.sounds = FIAR_Sounds()
         # self.update_state()
         self.Yes.clicked.connect(self.yes)
         self.No.clicked.connect(self.no)
         
     def yes(self):
+        self.sounds.click()
         self.callback_yes()
         self.reject()
         
     def no(self):
+        self.sounds.click()
         self.callback_no()
         self.reject()
         

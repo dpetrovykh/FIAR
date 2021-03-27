@@ -1,0 +1,7 @@
+History of FIAR Environment
+1. Installed conda
+2. cloned conda root enviornment
+3. pip installed playsound
+4. pip uninstalled playsound
+5. sudo apt-get install ffmpeg
+

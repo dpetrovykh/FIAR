@@ -1,0 +1,23 @@
+<RCC>
+  <qresource prefix="images">
+    <file>images/FIAR_logo_cropped.png</file>
+    <file>images/FIAR-Home-Screen_BG.png</file>
+    <file>images/Golden_Frame.png</file>
+    <file>images/boy.gif</file>
+    <file>images/gradient.jpeg</file>
+    <file>images/FIAR_logo.png</file>
+    <file>images/test_1.jpeg</file>
+  </qresource>
+  <qresource prefix="Label">
+    <file>images/new-game_purple.png</file>
+    <file>images/new-game_yellow.png</file>
+    <file>images/options_purple.png</file>
+    <file>images/options_yellow.png</file>
+    <file>images/quit_purple.png</file>
+    <file>images/quit_yellow.png</file>
+    <file>images/records_purple.png</file>
+    <file>images/records_yellow.png</file>
+    <file>images/continue_yellow.png</file>
+    <file>images/continue_purple.png</file>
+  </qresource>
+</RCC>

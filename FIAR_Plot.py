@@ -43,7 +43,7 @@ Y1DCOMP = -0.1 #-0.2
 X2DCOMP = 0 #-0.35
 Y2DCOMP = -0.1 #-0.2
 # NUmber of empty tiles to display outside of the outer-most pieces
-MIN_EDGE_GAP = 1
+MIN_EDGE_GAP = 2
 ## Settings for displaying numbers
 # NUM_DICT = {'size':10,
 #             'alpha':1,
@@ -124,24 +124,32 @@ HPOT_MARKERDICT = {'size': 10,
 
 class MplCanvas(FigureCanvas):
     
-    def __init__(self, parent = None, width=10, height=10, dpi=100):
+    def __init__(self, click_callback=None, parent = None, width=10, height=10, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi, constrained_layout=True)
         self.ax = fig.add_subplot(111)
+        self.click_callback = click_callback
         super(MplCanvas, self).__init__(fig)
 
+    def mousePressEvent(self, event):
+        print("mouse pressed in figure")
+        print(f"Position: {(event.x(),event.y())}")
+        # Calculate normalized position of click in frame and pass to callback function for move processing.
+        from_left = event.x()/self.frameSize().width()
+        from_top = event.y()/self.frameSize().height()
+        self.click_callback(from_left,from_top)
 
 class FIAR_Plot():
     '''
     TIC-TAC-TOE Five In A Row game. Contains all functionality for manually playing a game with the right commands.
     '''
-    def __init__(self, game):
+    def __init__(self, game, click_callback=None):
         '''
         
         '''
         self.game = game
         disp_bounds = self.display_bounds() 
         self.disp_edges = self.square_display_bounds(disp_bounds)
-        self.canvas = MplCanvas(self, width=self.disp_width*FIGSIZE, height=self.disp_height*FIGSIZE, dpi=100)
+        self.canvas = MplCanvas(click_callback, self, width=self.disp_width*FIGSIZE, height=self.disp_height*FIGSIZE, dpi=100)
         self.update_canvas()
         
     @property

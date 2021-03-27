@@ -1204,8 +1204,39 @@ Thursday, March 25:
             * [] markers scale with plot size
         * [] Create several compatible game_history visualizations and play with them.
         * [DONE] Change plotting style to be more step-wise
-        * [] FIX MY BROKEN-ASS ENVIRONMENT
+        * [DONE] FIX MY BROKEN-ASS ENVIRONMENT
+        * [DONE] Get any audio play
         
         
     STEPPIFYING A DATAFRAME:
         * Stepping through the old dataframe, a new one can be created by modifying and appending.
+        
+Friday, March 26:
+    BIG PICTURE TODOS:
+        * [] Add audio to the game
+        * [] Get Sasha to test the game for me.
+        * [] Improve the AI by having it recognize overlapping power triggers
+        * [] Incorporate some kind of summary information for users of the Viewer, like a plot or table
+        * [] Clean up the git repository and make it presentable.
+        * [] Fix bugs and make minor improvements. 
+        * [] Add images to the GUI
+        * [] Either add an options menu or delete the options button.
+        * [] Add ability to surrender
+
+    SOUNDS:
+        * [] Set up multithreading for background music
+        * [] Include differentiation between victory and defeat
+        * [] Modify exit and cancel buttons to perform their functions outside of Qt DEsigner so that a click sound can be attached
+        * [] Decide whether "end" sound means anything
+        * [] 
+    LAYOUT:
+        * [] Rearrange Buttons for new frame shape and size
+        * [] Vertical Play arrangement
+        * Surrender utton
+        * get rid of Move garbage.
+    YOU'RE BACK:
+        * You're programming the game to react to clicks to make moves
+        * The click_react must process the coordinates into x,y and pass them to Move, which must be modified to ignore the buttons currently there.
+        
+    BUGS:
+        * [] The game grid gets chopped off on the bottom. 40 pixels are lost in the frame. probably a qt designer layout issue.
