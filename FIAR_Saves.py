@@ -19,16 +19,16 @@ LISTING_NAME = "save_listing.p"
 LISTING_TEMP = {'auto':None,
                 1:None,
                 2:None,
-                3:None}
+                3:None} #template from which to create a save listing if none exists or if it is corrupt
 
 class EmptySaveSlot(Exception):
     def __init__(self, message=None):
         super(EmptySaveSlot, self).__init__()
         self.message = message
+        
 
 class FIAR_Saves():
     def __init__(self):
-        pass
         # try to open up pickle file listing
         try:
             self.listing = self.depickle_listing()
@@ -168,4 +168,9 @@ class FIAR_Saves():
     @staticmethod
     def del_pickles(filename = LISTING_NAME, folder=SAVE_FOLDER):
         os.remove(folder+'/'+filename)
+        
+
+class FIAR_Records(FIAR_Saves):
+    def __init__(self):
+        super().__init__()
         

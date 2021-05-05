@@ -193,7 +193,8 @@ class Play(FIAR_Main_Window):
         ## Button Connections
         self.Play_Undo.clicked.connect(self.undo)
         self.Play_Save.clicked.connect(self.save)
-        self.Play_Move.clicked.connect(self.move)
+        self.Play_Surrender.clicked.connect(self.surrender)
+        # self.Play_Move.clicked.connect(self.move)
         self.Play_MainMenu.clicked.connect(self.to_MainMenu)
     
     def exit_cleanup(self):
@@ -204,7 +205,7 @@ class Play(FIAR_Main_Window):
         try:
             self.Play_Undo.clicked.disconnect()
             self.Play_Save.clicked.disconnect()
-            self.Play_Move.clicked.disconnect()
+            # self.Play_Move.clicked.disconnect()
             self.Play_MainMenu.clicked.disconnect()
         except TypeError:
             pass
@@ -214,7 +215,8 @@ class Play(FIAR_Main_Window):
         self.newmpl()
         
     def update_np_label(self):
-        self.NextPlayerLabel.setText(self.game.next_player)        
+        self.NextPlayerLabel.setText(self.game.next_player.capitalize())    
+        self.NextPlayerLabel.setStyleSheet(f"color: {self.game.next_player}")
         
     def update_mode_label(self, mode):
         self.ModeLabel.setText(mode + " mode")
@@ -254,19 +256,32 @@ class Play(FIAR_Main_Window):
         
     def check_victory(self):
         if self.analysis.victory:
-            self.sounds.victory()
-            self.Play_TopLabel.setText(f"{self.analysis.victory.capitalize()} is Victorious!")
-            # Get name for record and save it.
-            savename_window = SaveName_Dialogue(callback= self.record_game,
-                                            namevalid= self.saves.valid_save_name)
-            savename_window.exec_()
-            # Delete current game from autosave
-            self.saves.delete_listed_save('auto')
+            self.game_over()
+
+    def game_over(self, winner = None):
+        self.sounds.victory()
+        if winner == None:
+            winner = self.analysis.victory
+        else:
+            assert winner.lower() in ['black','red']
+        self.Play_TopLabel.setText(f"{winner.capitalize()} is Victorious!")
+        # Get name for record and save it.
+        savename_window = SaveName_Dialogue(callback= self.record_game,
+                                        namevalid= self.saves.valid_save_name)
+        savename_window.exec_()
+        # Delete current game from autosave
+        self.saves.delete_listed_save('auto')
+        # Check that the game was saved and that it is listed in the records
+        if self.savename:
             # Ask users whether they would like to view the game in the viewer and do it.            
             viewerquery_window = ViewerQuery_Dialogue(callback_yes= self.to_Viewing,
                                                       callback_no = self.to_MainMenu)
-            viewerquery_window.exec_()
-            
+            viewerquery_window.exec_()            
+   
+    def surrender(self):
+        print("'Surrender' clicked.")
+        winner = self.game.previous_player
+        self.game_over(winner=winner)
         
     def save(self):
         self.sounds.click()
@@ -320,24 +335,24 @@ class PvP(Play):
         # Update all
         self.refresh_all()
 
-    def move(self):
-        self.sounds.move()
-        try:
-            # pull data from fields
-            x = self.Play_X_Val.value()
-            y = self.Play_Y_Val.value()
-            # feed data to game
-            self.game.move(x,y)
-            self.saves.autosave(self.game)
-        except OutOfBounds as ex:
-            pass
-            print(ex.message)
-        except RepeatMove as ex:
-            pass
-            print(ex.message)
-        self.refresh_all()
-        self.analysis.new_game(self.game)
-        self.check_victory()
+    # def move(self):
+    #     self.sounds.move()
+    #     try:
+    #         # pull data from fields
+    #         x = self.Play_X_Val.value()
+    #         y = self.Play_Y_Val.value()
+    #         # feed data to game
+    #         self.game.move(x,y)
+    #         self.saves.autosave(self.game)
+    #     except OutOfBounds as ex:
+    #         pass
+    #         print(ex.message)
+    #     except RepeatMove as ex:
+    #         pass
+    #         print(ex.message)
+    #     self.refresh_all()
+    #     self.analysis.new_game(self.game)
+    #     self.check_victory()
         
     def auto_move(self,x,y):
         self.sounds.move()
@@ -372,31 +387,31 @@ class PvAI(Play):
         super(PvAI, self).exit_cleanup()    
         self.ai_player = None
     
-    def move(self):
-        self.sounds.move()
-        # Perform User move first
-        try:
-            # pull data from fields
-            x = self.Play_X_Val.value()
-            y = self.Play_Y_Val.value()
-            # feed data to game
-            self.game.move(x,y)
-        except OutOfBounds as ex:
-            pass
-            print(ex.message)
-        except RepeatMove as ex:
-            pass
-            print(ex.message)
-        else: #User move went properly
-            ## AI Makes a move
-            self.analysis.new_game(self.game)
-            self.ai_move()
-            self.saves.autosave(self.game)
-        finally:
-            self.refresh_all() 
-            ## Check for victory
-            self.analysis.new_game(self.game)
-            self.check_victory()
+    # def move(self):
+    #     self.sounds.move()
+    #     # Perform User move first
+    #     try:
+    #         # pull data from fields
+    #         x = self.Play_X_Val.value()
+    #         y = self.Play_Y_Val.value()
+    #         # feed data to game
+    #         self.game.move(x,y)
+    #     except OutOfBounds as ex:
+    #         pass
+    #         print(ex.message)
+    #     except RepeatMove as ex:
+    #         pass
+    #         print(ex.message)
+    #     else: #User move went properly
+    #         ## AI Makes a move
+    #         self.analysis.new_game(self.game)
+    #         self.ai_move()
+    #         self.saves.autosave(self.game)
+    #     finally:
+    #         self.refresh_all() 
+    #         ## Check for victory
+    #         self.analysis.new_game(self.game)
+    #         self.check_victory()
     
     def auto_move(self,x,y):
         self.sounds.move()
@@ -548,22 +563,30 @@ class Loading(Saves):
     
 class Viewing(FIAR_Main_Window):
     def initialization(self, game= None, savename = None):
-        assert not(game and savename) #One or fewer are not "None"
+        print("Viewing Initialization")
+        assert not(game and savename) #Only one can be provided
         self.set_frame(VIEWER)
+        self.view_indices = {}
+        self.item=None
         # Dsiplay record games in list
         for record in self.saves.list_all_records():
             self.mplfigs.addItem(record)
+            ## Save records view index
+            record_game = FIAR.FIAR.from_csv(record, folder = RECORDS_FOLDER)
+            self.view_indices[record] = record_game.num_moves
         if savename: # The name of an existing record has been provided
             self.item = self.mplfigs.findItems(savename, Qt.MatchFlag.MatchExactly)[0]    
             self.new_game(self.item)
             self.item.setSelected(True)
-            
+            print("item set by savename: {savename}")
         elif game: # A game not saved in the records has been provided
             self.game = game
+            print("using provided game")
         else: # The first record in the list is provided
             self.item = self.mplfigs.item(0)
             self.new_game(self.item)
             self.item.setSelected(True)
+            print("First item set")
         self.newmpl(self.game)
         self.view_index = self.game.df.shape[0]
         ## Link Buttons
@@ -600,6 +623,7 @@ class Viewing(FIAR_Main_Window):
             viewed_game = FIAR.FIAR(df= new_df)
             self.rmmpl()
             self.newmpl(viewed_game)
+            self.view_indices[self.item.text()] = self.view_index
         else:
             print("We cannot go any further back in this game.")
     
@@ -612,6 +636,7 @@ class Viewing(FIAR_Main_Window):
                 viewed_game = FIAR.FIAR(df= new_df)
                 self.rmmpl()
                 self.newmpl(viewed_game)
+                self.view_indices[self.item.text()] = self.view_index
         else:
             print("This is the latest view of the game.")
 
@@ -644,15 +669,24 @@ class Viewing(FIAR_Main_Window):
         self.game = FIAR.FIAR.from_csv(name, folder = RECORDS_FOLDER)
         
     def change_game(self, item):
+        self.item = item
         self.sounds.click()
         self.rmmpl()
         self.new_game(item)
-        self.view_index = self.game.df.shape[0]
-        self.newmpl(self.game)
+        #self.view_index = self.game.df.shape[0]
+        self.view_index = self.view_indices[self.item.text()]
+        new_df = self.game.df.iloc[:self.view_index,:]
+        viewed_game = FIAR.FIAR(df= new_df)
+        self.newmpl(viewed_game)
         
     #TODO def Overlay_Toggle(self):
     def newmpl(self, game):
         self.plot = FIAR_Plot(game)
+        if self.OverlayToggle.isChecked():
+            analysis = FIAR_Analyzer.FIAR_Analyzer()
+            analysis.new_game(game)
+            PoTs = analysis.PoTs            
+            self.plot.draw_PoTs(PoTs)     
         self.View_mpl_layout.addWidget(self.plot.canvas)
         self.plot.canvas.draw()
 
@@ -664,20 +698,21 @@ class Viewing(FIAR_Main_Window):
     
     def overlay_toggle(self):
         self.sounds.click()
-        self.rmmpl()
-        viewed_df = self.game.df.iloc[:self.view_index,:]
-        viewed_game = FIAR.FIAR(df= viewed_df)
-        self.plot = FIAR_Plot(viewed_game)
-        if self.OverlayToggle.isChecked():
-            analysis = FIAR_Analyzer.FIAR_Analyzer()
-            analysis.new_game(viewed_game)
-            PoTs = analysis.PoTs            
-            self.plot.draw_PoTs(PoTs)            
-        else: #it was unchecked
-            pass
-        self.View_mpl_layout.addWidget(self.plot.canvas)
-        self.plot.canvas.draw()
-        
+        self.change_game(self.item)
+        #self.rmmpl()
+        # viewed_df = self.game.df.iloc[:self.view_index,:]
+        # viewed_game = FIAR.FIAR(df= viewed_df)
+        # self.plot = FIAR_Plot(viewed_game)
+        # if self.OverlayToggle.isChecked():
+        #     analysis = FIAR_Analyzer.FIAR_Analyzer()
+        #     analysis.new_game(viewed_game)
+        #     PoTs = analysis.PoTs            
+        #     self.plot.draw_PoTs(PoTs)            
+        # else: #it was unchecked
+        #     pass
+        # self.View_mpl_layout.addWidget(self.plot.canvas)
+        # self.plot.canvas.draw()
+    
     def to_PvP(self):
         '''
         State transition to PvP just like standard to_PvP() except without deletion of self.game

@@ -1212,31 +1212,77 @@ Thursday, March 25:
         * Stepping through the old dataframe, a new one can be created by modifying and appending.
         
 Friday, March 26:
-    BIG PICTURE TODOS:
+    TODOS:
         * [] Add audio to the game
-        * [] Get Sasha to test the game for me.
+        * [DONE] Get Sasha to test the game for me.
         * [] Improve the AI by having it recognize overlapping power triggers
         * [] Incorporate some kind of summary information for users of the Viewer, like a plot or table
         * [] Clean up the git repository and make it presentable.
-        * [] Fix bugs and make minor improvements. 
-        * [] Add images to the GUI
-        * [] Either add an options menu or delete the options button.
-        * [] Add ability to surrender
+        * [] Add proper labels to buttons and background images to pop-up elements
+        * [] Delete the options button.
+        * [DONE] Add ability to surrender
+            * [DONE] Surrender Button
+        * [] Store metadata about played games
+        * [] Fix issue of having to reset viewer toggle when stepping through game
+        * [] Make buttons appear clickable, maybe
+        * [] Make the viewer save the view location for a game when switching to another game. This would allow switching between two different games in two different game states for comparison.
+        * [] Add game metadata in the viewer:
+            * Date played
+            * Players
+            * Mode
+            * Showing Move x of y
 
     SOUNDS:
         * [] Set up multithreading for background music
         * [] Include differentiation between victory and defeat
         * [] Modify exit and cancel buttons to perform their functions outside of Qt DEsigner so that a click sound can be attached
-        * [] Decide whether "end" sound means anything
-        * [] 
+        * [?] Decide whether "end" sound means anything
+        * [] Pick out music that you like. 
     LAYOUT:
-        * [] Rearrange Buttons for new frame shape and size
-        * [] Vertical Play arrangement
-        * Surrender utton
-        * get rid of Move garbage.
+        * [DONE] Rearrange Buttons for new frame shape and size
+        * [DONE] Vertical Play arrangement
+        * [DONE] Surrender utton
+        * [DONE] get rid of Move garbage.
     YOU'RE BACK:
-        * You're programming the game to react to clicks to make moves
-        * The click_react must process the coordinates into x,y and pass them to Move, which must be modified to ignore the buttons currently there.
+        * 
         
     BUGS:
         * [] The game grid gets chopped off on the bottom. 40 pixels are lost in the frame. probably a qt designer layout issue.
+        * [DONE] The viewer index gets reset each time the user toggles the Overlay.
+        * [DONE] The ability to view a game in the viewer that is not a saved record is fucking with my ability to toggle the overlay. I will remove the ability to view unrecorded games in the viewer.
+        * [] I can save games with a name that is then impossible to load, like "A    B".
+
+Friday April 30th:
+    Broad TODO:
+        * Finish FIAR
+        * Wrap FIAR up in an executable
+        * Post on LinkedIn 
+    * Specific ToDos will be visible above.
+    
+Tuesday May 4:
+    Info Screens to help Players:
+        * Info screens show up for the first time and after that only if the question mark is clicked.
+        * There could be a help button on the main menu or in the play area. Clicking it opens a separate window that shows:
+            * The goal is to get Five In A Row, hence the name
+            * All pieces of one color are identical. The numbering is intended to help keep track of the game's history.
+            * Moves can be undone
+            * Surrender is an option
+            * Saving is an option
+        * A help button on the Viewer screen should show:
+            Here lie all recorded games played to completion, and they can be selected by clicking on their names.
+            Backwards and Forwards allow you to step through a game, see it unfold, and perhaps realize where a fatal mistake was made.
+            Toggling the Overlay will highlight certain patterns that show up in all games.
+            If you find a game that you want to replay, just step to the right state and click Play Current.
+            Define:
+                * Hard Threat
+                    * Defusers
+                * Soft Threat
+                * Hard Power
+                    * Triggers
+                * Soft Power
+                * 
+    Saving the view index for each viewed game when navigating the viewer.
+        * The view indices are stored in a dictionary{name: view index}.
+        * Upon entering the Viewing State, a new view index value is created for the most recent frame
+        * When switching games, the view index is looked up
+        * When moving forward backwards in a game, the view index is updated
