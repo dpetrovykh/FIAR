@@ -14,11 +14,12 @@ from PyQt5.QtGui import QMovie, QPainter, QPixmap
 
 from functools import partial
 import copy
+from datetime import datetime
 
 import FIAR
 from FIAR import OutOfBounds, RepeatMove
 from FIAR_Plot import FIAR_Plot
-from FIAR_Saves import FIAR_Saves, RECORDS_FOLDER, EmptySaveSlot
+from FIAR_Saves import FIAR_Saves, RECORDS_FOLDER, EmptySaveSlot, METADATA_TEMPLATE
 from FIAR_Sounds import FIAR_Sounds
 import FIAR_Analyzer
 
@@ -141,7 +142,6 @@ class FIAR_Main_Window(QMainWindow, Ui_MainWindow):
 class MainMenu(FIAR_Main_Window):
     def initialization(self):
         self.set_frame(MAINMENU)
-        print('movie init')
         # self.show()
         
         ## Link Main Menu Buttons
@@ -165,25 +165,32 @@ class MainMenu(FIAR_Main_Window):
         '''
         # print('Clicked main_newgame')
         self.sounds.click()
-        newgame_window = NewGame_Dialogue(callback=self.to_Play)
+        metadata = copy.deepcopy(METADATA_TEMPLATE)
+        newgame_window = NewGame_Dialogue(callback=self.to_Play,
+                                          namevalid= self.saves.valid_text,
+                                          metadata=metadata)
         newgame_window.exec_()
         # If dialogue interaction is successful, then MainMenu.receieve_newgame_inputs() gets called by dialogue.
  
-    def to_Play(self,inputs):
+    def to_Play(self, metadata, other_data):
         self.sounds.click()
-        game = FIAR.FIAR(first_player = inputs['first_player'])
+        game = FIAR.FIAR(first_player = other_data['first_player'])
         self.exit_cleanup()
-        if inputs['mode'] == 'PvP':
+        if metadata['mode'] == 'PvP':
             self.new_state(PvP)
-            self.initialization(game)
-        elif inputs['mode'] == 'PvAI':
+            self.initialization(game, metadata)
+        elif metadata['mode'] == 'PvAI':
             self.new_state(PvAI)
-            self.initialization(game, inputs['ai_player'])
+            self.initialization(game, metadata, other_data['ai_player'])
+        else:
+            raise ValueError("odd mode")
                 
     
 class Play(FIAR_Main_Window):
-    def initialization(self,game):
-        self.game = game#Assumes that self.game has already been set.
+    def initialization(self,game, metadata):
+        self.game = game
+        self.metadata = metadata
+        print(f"Metadata for new game: {metadata}")
         self.set_frame(PLAY)
         self.newmpl()
         self.update_np_label()
@@ -201,7 +208,7 @@ class Play(FIAR_Main_Window):
         self.game=None
         self.analysis.clear()
         self.rmmpl()
-        self.savename = None
+        self.metadata = None
         try:
             self.Play_Undo.clicked.disconnect()
             self.Play_Save.clicked.disconnect()
@@ -215,7 +222,8 @@ class Play(FIAR_Main_Window):
         self.newmpl()
         
     def update_np_label(self):
-        self.NextPlayerLabel.setText(self.game.next_player.capitalize())    
+        next_player_name = self.metadata[self.game.next_player+'_player']
+        self.NextPlayerLabel.setText(next_player_name)    
         self.NextPlayerLabel.setStyleSheet(f"color: {self.game.next_player}")
         
     def update_mode_label(self, mode):
@@ -234,21 +242,22 @@ class Play(FIAR_Main_Window):
     
     def click_react(self, from_left, from_top):
         '''Reacts to a click on the game board in order to process the cursor position and make a move'''
-        print(f"received normalized position of click, from left: {from_left}, from_top: {from_top}")
+        #print(f"received normalized position of click, from left: {from_left}, from_top: {from_top}")
         ## Calculate distance from left and top in cells
         cell_width = self.plot.disp_width #width of plot in cells
         cell_height = self.plot.disp_height #height of plot in cells
         c_left = from_left*cell_width #distance in cells from left edge
         c_top = from_top*cell_height #distance in cells from top edge
-        print(f"Cell distance from...top: {c_top}, left: {c_left}")
-        print(f"left_edge: {self.plot.disp_edges['left']}, top_edge: {self.plot.disp_edges['top']}")
+        #print(f"Cell distance from...top: {c_top}, left: {c_left}")
+        #print(f"left_edge: {self.plot.disp_edges['left']}, top_edge: {self.plot.disp_edges['top']}")
         x = c_left+self.plot.disp_edges['left'] # decimal x distance in cells from x,y origin
         y = self.plot.disp_edges['top']-c_top # decimal y distance in cells from x,y origin
         x_cell = round(x)
         y_cell = round(y)
-        print(f"calculated final move of x: {x_cell}, y: {y_cell}")
+        #print(f"calculated final move of x: {x_cell}, y: {y_cell}")
         ## Make a move with these new_found move coordinates.
         self.auto_move(x_cell,y_cell)
+        print(f"metadata: {self.metadata}")
     
     def refresh_all(self):
         self.refresh_mpl()
@@ -267,7 +276,8 @@ class Play(FIAR_Main_Window):
         self.Play_TopLabel.setText(f"{winner.capitalize()} is Victorious!")
         # Get name for record and save it.
         savename_window = SaveName_Dialogue(callback= self.record_game,
-                                        namevalid= self.saves.valid_save_name)
+                                        namevalid= self.saves.valid_save_name,
+                                        metadata=self.metadata)
         savename_window.exec_()
         # Delete current game from autosave
         self.saves.delete_listed_save('auto')
@@ -284,19 +294,32 @@ class Play(FIAR_Main_Window):
         self.game_over(winner=winner)
         
     def save(self):
+        ## function which is called upon pressing the "Save" button while playing in either PvP or PvAI mode
+        # make click sound
         self.sounds.click()
+        ## collect part of metadata that will be neccessary to create a proper save later
         ## Pop up saveName dialogue
         savename_window = SaveName_Dialogue(callback= self.to_Saving,
-                                            namevalid= self.saves.valid_save_name)
+                                            namevalid= self.saves.valid_save_name, 
+                                            metadata= self.metadata)
         savename_window.exec_()
     
-    def to_Saving(self,savename):
+    def gen_metadata(self):
+        metadata = copy.deepcopy(METADATA_TEMPLATE)
+        metadata['mode'] = self.get_mode()
+        metadata['datetime'] = datetime.now()
+        metadata['num_moves'] = self.game.num_moves
+        return metadata
+    
+    def to_Saving(self,metadata):
         game = copy.deepcopy(self.game)
+        print(f"game: {game}")
         ## Cleanup
         self.exit_cleanup()
+        print(f"game: {game}")
         ## transition to Saving state
         self.new_state(Saving)
-        self.initialization(game, savename)
+        self.initialization(game, metadata)
     
     def to_Viewing(self):
         game = copy.deepcopy(self.game)
@@ -314,10 +337,14 @@ class Play(FIAR_Main_Window):
         self.saves.save_record(self.game, savename)
         self.savename = savename
         
+    def get_mode(self):
+        print(f"type(self): {type(self)}")
+        return {PvP:'PvP', PvAI:'PvAI'}[type(self)]
+        
         
 class PvP(Play):        
-    def initialization(self, game):
-        super(PvP, self).initialization(game)
+    def initialization(self, game, metadata):
+        super(PvP, self).initialization(game, metadata)
         self.update_mode_label("PvP")
         ## Reconnect MainMenu button
         # self.Play_MainMenu.clicked.disconnect()
@@ -359,7 +386,11 @@ class PvP(Play):
         try:
             # feed data to game
             self.game.move(x,y)
-            self.saves.autosave(self.game)
+            self.metadata['datetime'] = datetime.now()
+            self.metadata['num_moves'] = self.game.num_moves
+            metadata = copy.deepcopy(self.metadata)
+            metadata['name'] = 'autosave'
+            self.saves.autosave(self.game, metadata)
         except OutOfBounds as ex:
             pass
             print(ex.message)
@@ -371,8 +402,8 @@ class PvP(Play):
         self.check_victory()
         
 class PvAI(Play):
-    def initialization(self, game, ai_player):
-        super(PvAI, self).initialization(game)
+    def initialization(self, game, metadata, ai_player):
+        super(PvAI, self).initialization(game, metadata)
         self.ai_player = ai_player
         self.set_frame(PLAY)
         self.update_mode_label("PvAI")
@@ -429,7 +460,11 @@ class PvAI(Play):
             ## AI Makes a move
             self.analysis.new_game(self.game)
             self.ai_move()
-            self.saves.autosave(self.game)
+            self.metadata['datetime'] = datetime.now()
+            self.metadata['num_moves'] = self.game.num_moves
+            metadata = copy.deepcopy(self.metadata)
+            metadata['name'] = 'autosave'
+            self.saves.autosave(self.game, metadata)
         finally:
             self.refresh_all() 
             ## Check for victory
@@ -465,46 +500,66 @@ class Saves(FIAR_Main_Window):
                                    (self.Save3,3)]:
             self.label_button(button, listing_id)
         self.Saves_MainMenu.clicked.connect(self.to_MainMenu)
+        Save1_button_suite = {'player1':self.Save1_Player1,
+                              'player2':self.Save1_Player2,
+                              'move':self.Save1_Move,
+                              'date':self.Save1_Date}
+        self.label_button_suite(1,Save1_button_suite)
+    
+    def label_button_suite(self, listing_id, button_suite):
+        metadata = self.saves.get_metadata(listing_id)
+        button_suite['player1'].setText(f"{metadata['red_player']}")
+        button_suite['player1'].setStyleSheet("color: red")
+        button_suite['player2'].setText(f"{metadata['black_player']}")
+        button_suite['player2'].setStyleSheet("color: black")
+        button_suite['move'].setText(f"Moves: {metadata['num_moves']}")
+        button_suite['date'].setText(f"{metadata['datetime'].strftime('%-I:%-M %p %b %-d,%Y')}")
+        
             
     def exit_cleanup(self):
         self.game = None
-        try:
-            self.Autosave.clicked.disconnect()
-            self.Save1.clicked.disconnect()
-            self.Save2.clicked.disconnect()
-            self.Save3.clicked.disconnect()
-            self.Saves_MainMenu.clicked.disconnect()
-        except TypeError:
-            pass
+        for button, desc in [(self.Autosave, 'autosave'),
+                             (self.Save1, "Save 1"), 
+                             (self.Save2, "Save 2"), 
+                             (self.Save3, "Save 3"), 
+                             (self.Saves_MainMenu, "Main_Menu")]:
+            try:
+                button.clicked.disconnect()
+            except TypeError:
+                print(f"Failed to disconnect button {desc}")
 
 
 class Saving(Saves):
-    def initialization(self, game, savename):
+    def initialization(self, game, metadata):
         super(Saving, self).initialization()
+        print("Entered Saving State")
         self.game = game
-        self.savename = savename
+        print(f"Saving received game: {game}")
+        self.metadata = metadata
         # print("Performing Saving initialization")
         # Tell the player to choose a slot to save in
         self.Saves_Banner.setText("Please select a save location for your game")
+        self.Autosave.clicked.connect(self.sounds.click)
         self.Save1.clicked.connect(partial(self.save_game, listing_id = 1))
         self.Save2.clicked.connect(partial(self.save_game, listing_id = 2))
         self.Save3.clicked.connect(partial(self.save_game, listing_id = 3))
         
     def exit_cleanup(self):
         super(Saving, self).exit_cleanup()
-        self.savename = None
+        self.metadata = None
         
     def save_game(self, listing_id):
+        print("calling Saving.save_game()")
         self.sounds.click()
         # Save the current game
         self.saves.save_game(game=self.game,
-                             savename=self.savename,
+                             metadata=self.metadata,
                              listing_id = listing_id)
         self.state_trans(MainMenu)
         
     def label_button(self, button, listing_id):
-        if self.saves.listing[listing_id] != None:
-            button.setText("Overwrite - " +self.saves.listing[listing_id])
+        if self.saves.get_name(listing_id) != None:
+            button.setText("Overwrite - " +self.saves.get_name(listing_id))
         else:
             button.setText("Save in Empty Slot")
         
@@ -512,6 +567,7 @@ class Saving(Saves):
 class Loading(Saves):
     def initialization(self):
         super(Loading, self).initialization()
+        print("Entered Loading State")
         # print("Performing Loading initialization")
         self.set_frame(SAVEDGAMES)
         # Tell the user to choose a slot to load
@@ -522,21 +578,25 @@ class Loading(Saves):
         self.Save3.clicked.connect(partial(self.load_game, listing_id = 3))
         
     def load_game(self, listing_id):
+        print("calling Loading.load_game()")
         self.sounds.click()
         try:
             self.game = self.saves.load_game(listing_id)
         except EmptySaveSlot as ex:
             print(ex.message)
         else:
-            resumegame_window = ResumeGame_Dialogue(callback = self.to_Play)
+            metadata = self.saves.get_metadata(listing_id)
+            resumegame_window = ResumeGame_Dialogue(callback = self.to_Play,
+                                                    validname = self.saves.valid_save_name,
+                                                    metadata = metadata)
             resumegame_window.exec_()
         
     def exit_cleanup(self):
         super(Loading, self).exit_cleanup()
         
     def label_button(self, button, listing_id):
-        if self.saves.listing[listing_id] != None:
-            button.setText("Load - " +self.saves.listing[listing_id])
+        if self.saves.get_name(listing_id) != None:
+            button.setText("Load - " +self.saves.get_name(listing_id))
         else:
             button.setText("No Save Here")
     
@@ -550,15 +610,15 @@ class Loading(Saves):
             self.ai_player = kwargs['ai_player']
             self.to_PvAI()
      
-    def to_Play(self, inputs):
+    def to_Play(self, metadata, other_data):
         game = copy.deepcopy(self.game)
         self.exit_cleanup()
-        if inputs['mode'] == 'PvP':
+        if other_data['mode'] == 'PvP':
             self.new_state(PvP)
-            self.initialization(game)
-        elif inputs['mode'] == 'PvAI':
+            self.initialization(game, metadata)
+        elif other_data['mode'] == 'PvAI':
             self.new_state(PvAI)
-            self.initialization(game,inputs['ai_player'])
+            self.initialization(game, metadata, other_data['ai_player'])
             
     
 class Viewing(FIAR_Main_Window):
@@ -679,7 +739,6 @@ class Viewing(FIAR_Main_Window):
         viewed_game = FIAR.FIAR(df= new_df)
         self.newmpl(viewed_game)
         
-    #TODO def Overlay_Toggle(self):
     def newmpl(self, game):
         self.plot = FIAR_Plot(game)
         if self.OverlayToggle.isChecked():
@@ -751,21 +810,32 @@ class Viewing(FIAR_Main_Window):
 #------------------------------------------------------------------------------
 
 class NewGame_Dialogue(QNewGame, Ui_NewGame):
-    def __init__(self, callback):
+    ''' Dialogue window which saves chosen settings for a new game.
+    metadata is a dictionary with game properties.
+    callback gets passed the updated metadata upon passing through this dialogue.
+    '''
+    def __init__(self, callback, namevalid, metadata):
         super(NewGame_Dialogue, self).__init__()
         # print(f"NewGameDialogue type: {self.__class__}")
         self.callback = callback
+        self.namevalid = namevalid
+        self.metadata = copy.deepcopy(metadata)
+        self.metadata['name'] = 'autosave'
+        self.metadata['datetime'] = datetime.now()
+        self.metadata['num_moves'] = 0
         self.setupUi(self)
         self.update_state()
         self.NewGame_Play.clicked.connect(self.newgame_play)
         self.sounds = FIAR_Sounds()
     
     def update_state(self):
+        ## read the selected text from a combobox and apply the relevant state to the dialogue box
         mode = self.ModeSelector.currentText()
         self.new_state({'PvP':NewGame_PvP,
                         'PvAI':NewGame_PvAI}[mode])
     
     def new_state(self,newstate):
+        ## Modifies the state of the dialogue
         self.__class__ = newstate
         if PRINT_STATE_TRANS:    
             print(f"Changed NewGame_Dialogue state to {self.__class__}")
@@ -779,33 +849,56 @@ class NewGame_Dialogue(QNewGame, Ui_NewGame):
     
 class NewGame_PvP(NewGame_Dialogue):
     def save_data(self):
+        ## Saves the selections made in the dialogue and sends them to the callback
         first_player = self.PvPFirstSelector.currentText().lower()
-        output = {'mode':'PvP',
-                  'first_player':first_player}
-        self.callback(output.copy())
-        self.reject()
+        red_player = self.PvP_RedPlayer.toPlainText()
+        black_player = self.PvP_BlackPlayer.toPlainText()
+        if self.namevalid(red_player) and self.namevalid(black_player):
+            self.metadata['mode'] = 'PvP'
+            self.metadata['red_player'] = red_player
+            self.metadata['black_player'] = black_player
+            other_data = {'first_player': first_player}
+            self.callback(self.metadata, other_data)
+            self.reject()
 
 class NewGame_PvAI(NewGame_Dialogue):
     def save_data(self):
-        # Passes all of the settings to MainWindow
+        ## Saves the selections made in the dialogue and sends them to the callback
         first_player = self.PvAIFirstSelector.currentText().lower()
         ai_player = self.AIColorSelector.currentText().lower()
-        output = {'mode':'PvAI',
-                  'first_player':first_player,
-                  'ai_player':ai_player}
-        self.callback(output.copy())
-        # closes itself
-        self.reject()     
+        player_name = self.PvAI_PlayerName.toPlainText()
+        if self.namevalid(player_name):
+            self.metadata['mode'] = 'PvAI'
+            if ai_player == 'red':
+                self.metadata['red_player'] = 'AI'
+                self.metadata['black_player'] = player_name
+            elif ai_player == 'black':
+                self.metadata['red_player'] = player_name
+                self.metadata['black_player'] = 'AI'
+            other_data = {'ai_player': ai_player,
+                          'first_player': first_player}
+            self.callback(self.metadata, other_data)
+            # closes itself
+            self.reject()     
         
         
 #------------------------------------------------------------------------------
 class ResumeGame_Dialogue(QResumeGame, Ui_ResumeGame):
-    def __init__(self, callback):
+    def __init__(self, callback, validname, metadata):
         super(ResumeGame_Dialogue, self).__init__()
         # print(f"NewGameDialogue type: {self.__class__}")
         self.callback = callback
+        self.validname = validname
+        self.metadata = copy.deepcopy(metadata)
         self.setupUi(self)
+        # Set combobox state to mode in metadata
+        if metadata['mode']:
+            mode_index = {'PvP':0,'PvAI':1}[metadata['mode']]
+            print(f"mode_index: {mode_index}")
+            self.ModeSelector.setCurrentIndex(mode_index)
+            self.stackedWidget.setCurrentIndex(mode_index)
         self.update_state()
+        self.display_metadata(self.metadata)
         self.ResumeGame_Play.clicked.connect(self.resumegame_play)
         self.sounds = FIAR_Sounds()
     
@@ -827,28 +920,63 @@ class ResumeGame_Dialogue(QResumeGame, Ui_ResumeGame):
         self.save_data()
     
 class ResumeGame_PvP(ResumeGame_Dialogue):
+    def display_metadata(self, metadata):
+        # Set redname to previous value
+        if metadata['red_player']:
+            self.PvP_RedPlayer.setPlainText(metadata['red_player'])
+        # Set black name to previous value
+        if metadata['black_player']:
+            self.PvP_BlackPlayer.setPlainText(metadata['black_player'])
+    
     def save_data(self):
-        output = {'mode':'PvP'}
-        self.callback(output.copy())
+        other_data = {'mode':'PvP'}
+        self.metadata['red_player'] = self.PvP_RedPlayer.toPlainText()
+        self.metadata['black_player'] = self.PvP_BlackPlayer.toPlainText()
+        self.metadata['mode'] = 'PvP'
+        self.callback(copy.deepcopy(self.metadata), other_data.copy())
         self.reject()
 
 class ResumeGame_PvAI(ResumeGame_Dialogue):
+    def display_metadata(self, metadata):
+        if metadata['red_player'] !=None:
+        ## Set combobox value for AI color
+            ai_color = None
+            player_name = None
+            if metadata['red_player'] == "AI":
+                ai_color = "red"
+                player_name = metadata['black_player']
+            elif metadata['black_player'] == "AI":
+                ai_color = "black"
+                player_name = metadata['red_player']
+            else:
+                raise Exception
+            ai_color_index = {'red':0,'black':1}[ai_color]
+            self.AIColorSelector.setCurrentIndex(ai_color_index)
+            self.PvAI_PlayerName.setPlainText(player_name)
+    
     def save_data(self):
-        # Passes all of the settings to MainWindow
         ai_player = self.AIColorSelector.currentText().lower()
-        output = {'mode':'PvAI',
+        other_data = {'mode':'PvAI',
                   'ai_player':ai_player}
-        self.callback(output.copy())
+        ai_color_label = {'red':'red_player',
+                          'black':'black_player'}[ai_player]
+        player_color_label = {'red_player':'black_player',
+                              'black_player':'red_player'}[ai_color_label]
+        self.metadata[ai_color_label] = "AI"
+        self.metadata[player_color_label] = self.PvAI_PlayerName.toPlainText()
+        self.metadata['mode'] = 'PvAI'
+        self.callback(copy.deepcopy(self.metadata), other_data.copy())
         # closes itself
         self.reject()     
 
 #------------------------------------------------------------------------------
 class SaveName_Dialogue(QSaveName, Ui_SaveName):
-    def __init__(self, callback, namevalid):
+    def __init__(self, callback, namevalid, metadata):
         super(SaveName_Dialogue, self).__init__()
         # print(f"NewGameDialogue type: {self.__class__}")
         self.callback = callback
         self.namevalid = namevalid
+        self.metadata = copy.deepcopy(metadata)
         self.setupUi(self)
         self.sounds = FIAR_Sounds()
         # self.update_state()
@@ -863,9 +991,9 @@ class SaveName_Dialogue(QSaveName, Ui_SaveName):
         # print(f"Entered text: {self.SaveName_Name.toPlainText()}")
         if self.namevalid(self.SaveName_Name.toPlainText()):
             # print('savename valid')
-            output = self.SaveName_Name.toPlainText()
+            self.metadata['name'] = self.SaveName_Name.toPlainText()
             # print(f"Passing Outputs to callback: {output}")
-            self.callback(output)
+            self.callback(self.metadata)
             self.reject()
         else:
             print("Save name not valid")

@@ -18,9 +18,9 @@ import random
 
 
 ## DEBUGGING CONSTANTS
-PRINT_CELL_CHOICE = True
-SHOW_QUEUES = True
-SHOW_PoTs = True
+PRINT_CELL_CHOICE = False
+SHOW_QUEUES = False
+SHOW_PoTs = False
 SHOW_SPots = False
 SHOW_HPots =False
 SHOW_Evals = False

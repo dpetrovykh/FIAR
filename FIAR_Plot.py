@@ -131,8 +131,8 @@ class MplCanvas(FigureCanvas):
         super(MplCanvas, self).__init__(fig)
 
     def mousePressEvent(self, event):
-        print("mouse pressed in figure")
-        print(f"Position: {(event.x(),event.y())}")
+        #print("mouse pressed in figure")
+        #print(f"Position: {(event.x(),event.y())}")
         # Calculate normalized position of click in frame and pass to callback function for move processing.
         from_left = event.x()/self.frameSize().width()
         from_top = event.y()/self.frameSize().height()

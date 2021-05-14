@@ -1,0 +1,4 @@
+marker,x,y,player
+1.0,0.0,0.0,red
+2.0,1.0,1.0,black
+3.0,1.0,-1.0,red

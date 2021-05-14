@@ -1216,25 +1216,25 @@ Friday, March 26:
         * [] Add audio to the game
         * [DONE] Get Sasha to test the game for me.
         * [] Improve the AI by having it recognize overlapping power triggers
-        * [] Incorporate some kind of summary information for users of the Viewer, like a plot or table
+        * [IGNORE] Incorporate some kind of summary information for users of the Viewer, like a plot or table
         * [] Clean up the git repository and make it presentable.
         * [] Add proper labels to buttons and background images to pop-up elements
         * [] Delete the options button.
         * [DONE] Add ability to surrender
             * [DONE] Surrender Button
         * [] Store metadata about played games
-        * [] Fix issue of having to reset viewer toggle when stepping through game
+        * [DONE] Fix issue of having to reset viewer toggle when stepping through game
         * [] Make buttons appear clickable, maybe
-        * [] Make the viewer save the view location for a game when switching to another game. This would allow switching between two different games in two different game states for comparison.
+        * [DONE] Make the viewer save the view location for a game when switching to another game. This would allow switching between two different games in two different game states for comparison.
         * [] Add game metadata in the viewer:
-            * Date played
-            * Players
-            * Mode
-            * Showing Move x of y
-
+        * [] Add a mute button for sounds
+        * [] Add a mute button for music
+        * [DONE] Display next player as player name in red or black color.
     SOUNDS:
         * [] Set up multithreading for background music
         * [] Include differentiation between victory and defeat
+            * PvP always play victory sound
+            * PvAI play defeat if AI wins.
         * [] Modify exit and cancel buttons to perform their functions outside of Qt DEsigner so that a click sound can be attached
         * [?] Decide whether "end" sound means anything
         * [] Pick out music that you like. 
@@ -1250,7 +1250,16 @@ Friday, March 26:
         * [] The game grid gets chopped off on the bottom. 40 pixels are lost in the frame. probably a qt designer layout issue.
         * [DONE] The viewer index gets reset each time the user toggles the Overlay.
         * [DONE] The ability to view a game in the viewer that is not a saved record is fucking with my ability to toggle the overlay. I will remove the ability to view unrecorded games in the viewer.
-        * [] I can save games with a name that is then impossible to load, like "A    B".
+        * [DONE] I can save games with a name that is then impossible to load, like "A    B".
+            * [DONE] The "valid_save_name()" func in FIAR_Saves is much too permissive and causes problems later down the line.
+        * [] Saving a new game does not populate the red_player and black_player fields in the listing.
+        * [] Clicking enterafter typing in a PvAI player name is not equivalent to clicking the "Play" button.
+        * [DONE] Clicking to continue a save slot that was a PvAI game does correctly change the "mode" combobox to PvAI, but it does not properly update to the dialogue box to show the corresponding PvAI fields
+        * [DONE] Trying to click play on Resume Dialogue yields an error
+        * [DONE] When there is something wrong with a game's metadata in the listing, attempts to display this metadata when resuming the game are brittle and fail
+        * [DONE] When Some listing is found to be problematic, all listings are deleted, including ones that are totally fine.
+        * [DONE] save files seems to disappear for some reason, triggering the need to recreate listings.
+        * [DONE] the autosave does not change the 'name' field of the metadata to 'autosave'.
 
 Friday April 30th:
     Broad TODO:
@@ -1286,3 +1295,112 @@ Tuesday May 4:
         * Upon entering the Viewing State, a new view index value is created for the most recent frame
         * When switching games, the view index is looked up
         * When moving forward backwards in a game, the view index is updated
+        
+    Game Metadata in Viewer:
+        * displayed for whatever game is selected
+        * simply fill text boxes with relevant data.
+        Included data:
+            * Date played
+            * Red player
+            * black player
+            * Showing Move x of y
+        
+    Game metadata in Saved Games:
+        Included data:
+            * Mode
+            * Date Saved
+            * Total number of moves made
+            * red player
+            * black player
+    
+    Where to store metadata about games?
+        * Currently, FIAR_Saves stores listing data as a dictionary:
+            {'auto': name1, 1:name2, 2:name2, 3:name3}
+        * We will add another layer of dictionary to store more data
+            {
+            'auto1':
+                {'name': name1,
+                'Mode': 'PvP',
+                'num_moves':12,
+                'red_player': 'Huggy',
+                'black_player': "Bingo'},
+            1: 
+                {'name': name2,
+                ...},
+            ...
+            }
+            
+    How to populate save game metadata for game being saved for the first time:
+        * Each piece of data:
+            * 'name': ask user upon decision to save
+            * 'mode': pulled automatically from game
+            * Time/Date: generated at time of saving
+            * num_moves: pulled from game
+            * red_player: information asked for when new game was started
+            * black_player: information asked for when new game was started
+     
+    What about loaded games?
+        * metadata will be avaialable from pickled listing
+        * metadata will be on display on screen with save slots
+        * Once a game is selected to continue, it should accept the old metadata and make its own.
+        * If the resumed game is saved again, it should keep and update metadata appropriately.
+            * datetime automatically updated
+            * num_moves automatically updated
+            * mode: previous value set as default, but settable
+            for PvAI:
+                * player name: old name placed in textbox by default
+            for PvP:
+                * red_player: old name placed in textbox by default
+                * black_player: old name placed in textbox by default
+                *
+        * [DONE] RsumeGame dialogue must accept the metadata of the chosen game to set those selections as the default, update the metadata based on user selection, and  pass the modified metadata onwards.
+        
+    [DONE] populate save listing with mode, datetime, num_moves.    
+    [DONE] Ask for input of player names upon creating a game
+    
+    
+    Changes to NewGame Dialogue:
+        For PvAI mode:
+            * Name of human player
+        For PvP Mode:
+            * Name of red player
+            * Name of black player
+            
+    Canges to ResumeGame Dialogue:
+        Set to proper mode by default
+        Check for validity of names in field inputs.
+        For PvAI mode:
+            * Add AI color combobox
+            * Add player name textfield
+            * If save was originally a PvAI game:
+                * set ai color and player name fields to previous value
+        For PvP mode:
+            * Add Red Name textfield
+            * Add Black Name textfield
+            * If save was originally in PvP mode:
+                * set Red and black name to previous values.    
+    
+    []Add to resume about git and maybe other stuff
+
+Thursday, May 6th:
+    How should metadata on saves be displayed?
+        * There could be a whole set of boxes below each save that displays the metadata.
+        * displayed?:
+            * no-Game name
+            * yes-datetime
+            * yes-mode
+            * yes-num_moves
+            * yes-player names
+        
+    How should record metadata be handled?
+        * ideally, we can use the same functions as are used for the saves folder, except for the record folder.
+    
+    Should game metadata be displayed on Play page?
+        * player names are already displayed when it is their turn
+        * No
+        
+    Current State of mind:
+        * i just got the metadata to display for save1
+        * I need to layout the save file info better
+        * I need to somehow store record metadata as well
+        * I need to display record metadata in the viewer
